@@ -34,10 +34,24 @@ export async function createProject(formData: FormData) {
   redirect(`/projects/${project.id}`);
 }
 
-export async function updateProject(formData: FormData) {
+export interface ActionResult {
+  success: boolean;
+  error?: string;
+}
+
+export async function updateProject(
+  formData: FormData,
+): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
+  if (!id) return { success: false, error: "Missing project id." };
+
   const titleResult = titleSchema.safeParse(formData.get("title"));
-  if (!id || !titleResult.success) return;
+  if (!titleResult.success) {
+    return {
+      success: false,
+      error: titleResult.error.issues[0]?.message ?? "Invalid title.",
+    };
+  }
 
   const description = String(formData.get("description") ?? "").trim();
   const youtubeUrl = String(formData.get("youtubeUrl") ?? "").trim();
@@ -45,6 +59,9 @@ export async function updateProject(formData: FormData) {
   const statusResult = statusRaw
     ? projectStatusSchema.safeParse(statusRaw)
     : null;
+  if (statusResult && !statusResult.success) {
+    return { success: false, error: "Invalid status." };
+  }
 
   await prisma.project.update({
     where: { id },
@@ -58,6 +75,8 @@ export async function updateProject(formData: FormData) {
 
   revalidatePath(`/projects/${id}`);
   revalidatePath("/");
+
+  return { success: true };
 }
 
 export async function deleteProject(formData: FormData) {
@@ -99,17 +118,31 @@ export async function createShot(formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-export async function updateShot(formData: FormData) {
+export async function updateShot(formData: FormData): Promise<ActionResult> {
   const id = String(formData.get("id") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
+  if (!id || !projectId) {
+    return { success: false, error: "Missing shot or project id." };
+  }
+
   const titleResult = titleSchema.safeParse(formData.get("title"));
-  if (!id || !projectId || !titleResult.success) return;
+  if (!titleResult.success) {
+    return {
+      success: false,
+      error: titleResult.error.issues[0]?.message ?? "Invalid title.",
+    };
+  }
 
   const description = String(formData.get("description") ?? "").trim();
 
   const promptRaw = String(formData.get("prompt") ?? "").trim();
   const promptResult = promptRaw ? promptSchema.safeParse(promptRaw) : null;
-  if (promptResult && !promptResult.success) return;
+  if (promptResult && !promptResult.success) {
+    return {
+      success: false,
+      error: `Prompt: ${promptResult.error.issues[0]?.message ?? "invalid."}`,
+    };
+  }
 
   const negativePromptRaw = String(
     formData.get("negativePrompt") ?? "",
@@ -117,7 +150,14 @@ export async function updateShot(formData: FormData) {
   const negativePromptResult = negativePromptRaw
     ? promptSchema.safeParse(negativePromptRaw)
     : null;
-  if (negativePromptResult && !negativePromptResult.success) return;
+  if (negativePromptResult && !negativePromptResult.success) {
+    return {
+      success: false,
+      error: `Negative prompt: ${
+        negativePromptResult.error.issues[0]?.message ?? "invalid."
+      }`,
+    };
+  }
 
   const aiTool = String(formData.get("aiTool") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
@@ -126,7 +166,12 @@ export async function updateShot(formData: FormData) {
   const durationResult = durationRaw
     ? durationSchema.safeParse(durationRaw)
     : null;
-  if (durationResult && !durationResult.success) return;
+  if (durationResult && !durationResult.success) {
+    return {
+      success: false,
+      error: durationResult.error.issues[0]?.message ?? "Invalid duration.",
+    };
+  }
 
   await prisma.shot.update({
     where: { id },
@@ -143,6 +188,8 @@ export async function updateShot(formData: FormData) {
 
   revalidatePath(`/projects/${projectId}/shots/${id}`);
   revalidatePath(`/projects/${projectId}`);
+
+  return { success: true };
 }
 
 export async function updateShotStatus(formData: FormData) {
@@ -226,7 +273,8 @@ export async function selectTake(formData: FormData) {
   if (!id || !shotId || !projectId) return;
 
   const take = await prisma.take.findUnique({ where: { id } });
-  if (!take) return;
+  if (!take || take.shotId !== shotId) return;
+  if (take.status !== "READY") return;
 
   await prisma.$transaction([
     prisma.take.updateMany({
@@ -234,7 +282,7 @@ export async function selectTake(formData: FormData) {
       data: { status: "READY" },
     }),
     prisma.take.update({
-      where: { id },
+      where: { id, shotId },
       data: { status: "SELECTED" },
     }),
     prisma.shot.update({
@@ -314,13 +362,29 @@ export async function importShots(
   });
   let nextOrder = (lastShot?.order ?? 0) + 1;
 
+  let imported = 0;
+
   for (const shot of result.shots) {
+    if (shot.prompt.length > MAX_PROMPT_LENGTH) {
+      result.errors.push(
+        `Shot ${shot.shotLabel}: prompt exceeds ${MAX_PROMPT_LENGTH.toLocaleString()} characters — skipped.`,
+      );
+      continue;
+    }
+    if (
+      shot.negativePrompt &&
+      shot.negativePrompt.length > MAX_PROMPT_LENGTH
+    ) {
+      result.errors.push(
+        `Shot ${shot.shotLabel}: negative prompt exceeds ${MAX_PROMPT_LENGTH.toLocaleString()} characters — skipped.`,
+      );
+      continue;
+    }
+
     const title = (shot.title ?? `Shot ${shot.shotLabel}`).slice(
       0,
       MAX_TITLE_LENGTH,
     );
-    const prompt = shot.prompt.slice(0, MAX_PROMPT_LENGTH);
-    const negativePrompt = shot.negativePrompt?.slice(0, MAX_PROMPT_LENGTH) ?? null;
     const durationSeconds =
       shot.durationSeconds !== null
         ? Math.min(3600, Math.max(0, shot.durationSeconds))
@@ -331,18 +395,19 @@ export async function importShots(
         projectId,
         order: nextOrder++,
         title,
-        prompt,
-        negativePrompt,
+        prompt: shot.prompt,
+        negativePrompt: shot.negativePrompt,
         aiTool: shot.tool,
         durationSeconds,
       },
     });
+    imported++;
   }
 
   revalidatePath(`/projects/${projectId}`);
 
   return {
-    imported: result.shots.length,
+    imported,
     errors: result.errors,
     parser,
     fellBack,

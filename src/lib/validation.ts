@@ -26,9 +26,27 @@ export const takeStatusSchema = z.enum([
 ]);
 
 export const MAX_TITLE_LENGTH = 200;
-export const MAX_PROMPT_LENGTH = 4000;
+export const MAX_PROMPT_LENGTH = 30000;
 
-export const titleSchema = z.string().trim().min(1).max(MAX_TITLE_LENGTH);
-export const promptSchema = z.string().trim().max(MAX_PROMPT_LENGTH);
-export const durationSchema = z.coerce.number().min(0).max(3600);
-export const costSchema = z.coerce.number().min(0);
+export const titleSchema = z
+  .string()
+  .trim()
+  .min(1, "Title is required.")
+  .max(MAX_TITLE_LENGTH, `Title must be ${MAX_TITLE_LENGTH} characters or fewer.`);
+
+export const promptSchema = z
+  .string()
+  .trim()
+  .max(
+    MAX_PROMPT_LENGTH,
+    `Must be ${MAX_PROMPT_LENGTH.toLocaleString()} characters or fewer.`,
+  );
+
+export const durationSchema = z.coerce
+  .number("Duration must be a number.")
+  .min(0, "Duration must be 0 or greater.")
+  .max(3600, "Duration must be 3600 seconds or less.");
+
+export const costSchema = z.coerce
+  .number("Cost must be a number.")
+  .min(0, "Cost must be 0 or greater.");

@@ -24,6 +24,7 @@ export function ProjectEditForm({
   };
 }) {
   const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   if (!isEditing) {
@@ -34,7 +35,10 @@ export function ProjectEditForm({
             {project.title}
           </h1>
           <button
-            onClick={() => setIsEditing(true)}
+            onClick={() => {
+              setError(null);
+              setIsEditing(true);
+            }}
             className="text-xs text-zinc-500 hover:underline"
           >
             Edit
@@ -64,8 +68,13 @@ export function ProjectEditForm({
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
         startTransition(async () => {
-          await updateProject(formData);
-          setIsEditing(false);
+          const result = await updateProject(formData);
+          if (result.success) {
+            setError(null);
+            setIsEditing(false);
+          } else {
+            setError(result.error ?? "Something went wrong.");
+          }
         });
       }}
       className="flex flex-col gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
@@ -125,6 +134,9 @@ export function ProjectEditForm({
           />
         </div>
       </div>
+      {error && (
+        <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+      )}
       <div className="flex gap-2">
         <button
           type="submit"
@@ -135,7 +147,10 @@ export function ProjectEditForm({
         </button>
         <button
           type="button"
-          onClick={() => setIsEditing(false)}
+          onClick={() => {
+            setError(null);
+            setIsEditing(false);
+          }}
           disabled={isPending}
           className="rounded border border-black/[.08] px-4 py-2 text-sm dark:border-white/[.145]"
         >

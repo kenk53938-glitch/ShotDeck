@@ -173,7 +173,7 @@ export default async function ShotDetail({
                       projectId={projectId}
                       status={take.status}
                     />
-                    {take.status !== "SELECTED" && (
+                    {take.status === "READY" && (
                       <form action={selectTake}>
                         <input type="hidden" name="id" value={take.id} />
                         <input type="hidden" name="shotId" value={shot.id} />
