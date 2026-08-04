@@ -53,6 +53,7 @@ model Shot {
   title          String?
   description    String?
   prompt         String?
+  negativePrompt String?
   aiTool         String?
   durationSeconds Float?
   status         ShotStatus @default(PLANNED)

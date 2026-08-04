@@ -8,6 +8,8 @@ import type {
   ShotStatus,
   TakeStatus,
 } from "@/generated/prisma/enums";
+import { parseShotList } from "@/lib/shotParser";
+import { parseShotListWithGemini } from "@/lib/geminiParser";
 
 export async function createProject(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
@@ -93,6 +95,7 @@ export async function updateShot(formData: FormData) {
 
   const description = String(formData.get("description") ?? "").trim();
   const prompt = String(formData.get("prompt") ?? "").trim();
+  const negativePrompt = String(formData.get("negativePrompt") ?? "").trim();
   const aiTool = String(formData.get("aiTool") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
   const durationRaw = String(formData.get("durationSeconds") ?? "").trim();
@@ -104,6 +107,7 @@ export async function updateShot(formData: FormData) {
       title,
       description: description || null,
       prompt: prompt || null,
+      negativePrompt: negativePrompt || null,
       aiTool: aiTool || null,
       notes: notes || null,
       durationSeconds:
@@ -215,6 +219,97 @@ export async function selectTake(formData: FormData) {
 
   revalidatePath(`/projects/${projectId}/shots/${shotId}`);
   revalidatePath(`/projects/${projectId}`);
+}
+
+export interface ImportShotsResult {
+  imported: number;
+  errors: string[];
+  parser: "gemini" | "rule-based";
+  fellBack: boolean;
+}
+
+export async function importShots(
+  formData: FormData,
+): Promise<ImportShotsResult> {
+  const projectId = String(formData.get("projectId") ?? "");
+  if (!projectId) {
+    return {
+      imported: 0,
+      errors: ["Missing project."],
+      parser: "rule-based",
+      fellBack: false,
+    };
+  }
+
+  const file = formData.get("file");
+  let text = String(formData.get("text") ?? "");
+  if (file instanceof File && file.size > 0) {
+    text = await file.text();
+  }
+  text = text.trim();
+
+  if (!text) {
+    return {
+      imported: 0,
+      errors: ["Paste some shot text or upload a file first."],
+      parser: "rule-based",
+      fellBack: false,
+    };
+  }
+
+  let parser: "gemini" | "rule-based" = "rule-based";
+  let fellBack = false;
+  let result;
+
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      result = await parseShotListWithGemini(text);
+      parser = "gemini";
+    } catch (err) {
+      fellBack = true;
+      const fallback = parseShotList(text);
+      result = {
+        shots: fallback.shots,
+        errors: [
+          `AI parsing failed (${
+            err instanceof Error ? err.message : "unknown error"
+          }), used the rule-based parser instead.`,
+          ...fallback.errors,
+        ],
+      };
+    }
+  } else {
+    result = parseShotList(text);
+  }
+
+  const lastShot = await prisma.shot.findFirst({
+    where: { projectId },
+    orderBy: { order: "desc" },
+  });
+  let nextOrder = (lastShot?.order ?? 0) + 1;
+
+  for (const shot of result.shots) {
+    await prisma.shot.create({
+      data: {
+        projectId,
+        order: nextOrder++,
+        title: shot.title ?? `Shot ${shot.shotLabel}`,
+        prompt: shot.prompt,
+        negativePrompt: shot.negativePrompt,
+        aiTool: shot.tool,
+        durationSeconds: shot.durationSeconds,
+      },
+    });
+  }
+
+  revalidatePath(`/projects/${projectId}`);
+
+  return {
+    imported: result.shots.length,
+    errors: result.errors,
+    parser,
+    fellBack,
+  };
 }
 
 export async function deleteTake(formData: FormData) {

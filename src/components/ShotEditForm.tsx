@@ -12,6 +12,7 @@ export function ShotEditForm({
     title: string | null;
     description: string | null;
     prompt: string | null;
+    negativePrompt: string | null;
     aiTool: string | null;
     durationSeconds: number | null;
     notes: string | null;
@@ -42,6 +43,11 @@ export function ShotEditForm({
         )}
         {shot.prompt && (
           <p className="text-zinc-600 dark:text-zinc-400">{shot.prompt}</p>
+        )}
+        {shot.negativePrompt && (
+          <p className="text-sm text-zinc-500">
+            Negative: {shot.negativePrompt}
+          </p>
         )}
         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
           {shot.aiTool && (
@@ -105,6 +111,17 @@ export function ShotEditForm({
           id="prompt"
           name="prompt"
           defaultValue={shot.prompt ?? ""}
+          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+        />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="negativePrompt" className="text-xs text-zinc-500">
+          Negative prompt
+        </label>
+        <input
+          id="negativePrompt"
+          name="negativePrompt"
+          defaultValue={shot.negativePrompt ?? ""}
           className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
         />
       </div>

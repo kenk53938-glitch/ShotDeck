@@ -29,6 +29,14 @@ AI video generation usually needs several attempts before one is selected.
 
 See [`prisma/schema.prisma`](./prisma/schema.prisma) for the full schema.
 
+## Importing shots
+
+Shots can be bulk-imported from pasted text or an uploaded file on each
+project's board, instead of adding them one by one. See
+[`docs/shot-format.md`](./docs/shot-format.md) for the expected format
+(works for video, comics, or any other shot-by-shot medium) and for how
+to enable optional AI-assisted parsing via a free Gemini API key.
+
 ## Getting started
 
 Install dependencies and apply migrations:

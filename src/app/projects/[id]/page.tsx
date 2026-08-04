@@ -5,6 +5,7 @@ import { createShot, deleteShot, deleteProject } from "@/app/actions";
 import { ShotStatusSelect } from "@/components/ShotStatusSelect";
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
+import { ShotImportForm } from "@/components/ShotImportForm";
 import type { ShotStatus } from "@/generated/prisma/enums";
 
 const COLUMNS: { status: ShotStatus; label: string }[] = [
@@ -116,6 +117,13 @@ export default async function ProjectBoard({
             Add
           </button>
         </form>
+      </section>
+
+      <section className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
+        <ShotImportForm
+          projectId={project.id}
+          geminiEnabled={!!process.env.GEMINI_API_KEY}
+        />
       </section>
 
       <section className="flex gap-4 overflow-x-auto pb-4">
