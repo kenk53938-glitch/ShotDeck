@@ -30,7 +30,7 @@ export default async function SettingsPage() {
             <a
               href="https://openrouter.ai"
               target="_blank"
-              className="underline"
+              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
             >
               OpenRouter
             </a>{" "}
@@ -40,7 +40,7 @@ export default async function SettingsPage() {
             <a
               href="https://groq.com"
               target="_blank"
-              className="underline"
+              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
             >
               Groq
             </a>{" "}

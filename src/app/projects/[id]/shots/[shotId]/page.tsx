@@ -6,6 +6,7 @@ import { ShotStatusSelect } from "@/components/ShotStatusSelect";
 import { TakeStatusSelect } from "@/components/TakeStatusSelect";
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
 import { ShotEditForm } from "@/components/ShotEditForm";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const TAKE_STATUS_STYLES: Record<string, string> = {
   GENERATING: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
@@ -56,7 +57,11 @@ export default async function ShotDetail({
         {shot.videoUrl && (
           <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
             Selected clip:{" "}
-            <a href={shot.videoUrl} className="underline" target="_blank">
+            <a
+              href={shot.videoUrl}
+              className="underline transition-colors hover:text-green-900 dark:hover:text-green-100"
+              target="_blank"
+            >
               {shot.videoUrl}
             </a>
           </div>
@@ -116,12 +121,12 @@ export default async function ShotDetail({
               className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
             />
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingText="Adding…"
             className="h-fit w-fit rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
           >
             Add take
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -169,12 +174,12 @@ export default async function ShotDetail({
                           name="projectId"
                           value={projectId}
                         />
-                        <button
-                          type="submit"
-                          className="rounded border border-black/[.08] px-2 py-1 text-xs hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-white/[.06]"
+                        <SubmitButton
+                          pendingText="Selecting…"
+                          className="rounded border border-black/[.08] px-2 py-1 text-xs transition-colors hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-white/[.06]"
                         >
                           Select
-                        </button>
+                        </SubmitButton>
                       </form>
                     )}
                     <form action={deleteTake}>
@@ -188,7 +193,7 @@ export default async function ShotDetail({
                       <ConfirmDeleteButton
                         label="✕"
                         confirmMessage={`Delete take #${take.versionNumber}?`}
-                        className="text-xs text-zinc-400 hover:text-red-500"
+                        className="text-xs text-zinc-400 transition-colors hover:text-red-500"
                       />
                     </form>
                   </div>
@@ -202,7 +207,7 @@ export default async function ShotDetail({
                   <a
                     href={take.fileUrl}
                     target="_blank"
-                    className="w-fit text-xs text-blue-600 underline dark:text-blue-400"
+                    className="w-fit text-xs text-blue-600 underline transition-colors hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     {take.fileUrl}
                   </a>

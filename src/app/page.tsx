@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createProject } from "@/app/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 const PROJECT_STATUS_STYLES: Record<string, string> = {
   PLANNING: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
@@ -58,12 +59,12 @@ export default async function Home() {
               className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
             />
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingText="Creating…"
             className="h-fit rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
           >
             Create
-          </button>
+          </SubmitButton>
         </form>
       </section>
 

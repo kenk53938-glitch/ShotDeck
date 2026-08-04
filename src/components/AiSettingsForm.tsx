@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { saveAiProviderSettings, clearAiProviderSettings } from "@/app/actions";
 import { detectDefaultModel } from "@/lib/aiProviders";
+import { Toast } from "@/components/Toast";
 
 export function AiSettingsForm({
   configured,
@@ -16,10 +17,11 @@ export function AiSettingsForm({
   maskedApiKey: string | null;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, startSaveTransition] = useTransition();
+  const [isClearing, startClearTransition] = useTransition();
+  const isPending = isSaving || isClearing;
   const [error, setError] = useState<string | null>(null);
-  const [justSaved, setJustSaved] = useState(false);
-  const [justCleared, setJustCleared] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [liveBaseUrl, setLiveBaseUrl] = useState(apiBaseUrl ?? "");
   const suggestedModel = detectDefaultModel(liveBaseUrl);
 
@@ -41,12 +43,11 @@ export function AiSettingsForm({
         onSubmit={(e) => {
           e.preventDefault();
           const formData = new FormData(e.currentTarget);
-          startTransition(async () => {
+          startSaveTransition(async () => {
             const result = await saveAiProviderSettings(formData);
             if (result.success) {
               setError(null);
-              setJustSaved(true);
-              setJustCleared(false);
+              setToast("Settings saved.");
               const apiKeyInput =
                 formRef.current?.querySelector<HTMLInputElement>(
                   'input[name="apiKey"]',
@@ -106,40 +107,33 @@ export function AiSettingsForm({
         {error && (
           <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
         )}
-        {justSaved && !error && (
-          <p className="text-xs text-green-700 dark:text-green-400">
-            Settings saved.
-          </p>
-        )}
-        {justCleared && <p className="text-xs text-zinc-500">Cleared.</p>}
-
         <div className="flex gap-2">
           <button
             type="submit"
             disabled={isPending}
             className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
           >
-            Save
+            {isSaving ? "Saving…" : "Save"}
           </button>
           {configured && (
             <button
               type="button"
               disabled={isPending}
               onClick={() => {
-                startTransition(async () => {
+                startClearTransition(async () => {
                   await clearAiProviderSettings();
-                  setJustCleared(true);
-                  setJustSaved(false);
+                  setToast("Settings cleared.");
                   setError(null);
                 });
               }}
-              className="rounded border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+              className="rounded border border-red-200 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
             >
-              Clear
+              {isClearing ? "Clearing…" : "Clear"}
             </button>
           )}
         </div>
       </form>
+      {toast && <Toast message={toast} onDismiss={() => setToast(null)} />}
     </div>
   );
 }

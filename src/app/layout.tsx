@@ -28,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <nav className="flex items-center justify-between border-b border-black/[.08] px-8 py-3 dark:border-white/[.145]">
           <Link
             href="/"
-            className="text-sm font-semibold text-black dark:text-zinc-50"
+            className="text-sm font-semibold text-black transition-colors hover:text-zinc-600 dark:text-zinc-50 dark:hover:text-zinc-300"
           >
             ShotDeck
           </Link>

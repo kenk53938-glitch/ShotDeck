@@ -6,6 +6,7 @@ import { ShotStatusSelect } from "@/components/ShotStatusSelect";
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ShotImportForm } from "@/components/ShotImportForm";
+import { SubmitButton } from "@/components/SubmitButton";
 import { getAiProviderConfig } from "@/lib/settings";
 import type { ShotStatus } from "@/generated/prisma/enums";
 
@@ -63,8 +64,9 @@ export default async function ProjectBoard({
             <input type="hidden" name="id" value={project.id} />
             <ConfirmDeleteButton
               label="Delete project"
+              pendingLabel="Deleting…"
               confirmMessage={`Delete "${project.title}" and all its shots?`}
-              className="rounded border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+              className="rounded border border-red-200 px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
             />
           </form>
         </div>
@@ -114,12 +116,12 @@ export default async function ProjectBoard({
               className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
             />
           </div>
-          <button
-            type="submit"
+          <SubmitButton
+            pendingText="Adding…"
             className="h-fit rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
           >
             Add
-          </button>
+          </SubmitButton>
         </form>
       </section>
 
@@ -167,7 +169,7 @@ export default async function ProjectBoard({
                       <ConfirmDeleteButton
                         label="✕"
                         confirmMessage={`Delete shot "${shot.title}"?`}
-                        className="text-xs text-zinc-400 hover:text-red-500"
+                        className="text-xs text-zinc-400 transition-colors hover:text-red-500"
                       />
                     </form>
                   </div>

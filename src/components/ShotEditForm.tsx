@@ -182,7 +182,7 @@ export function ShotEditForm({
           disabled={isPending}
           className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
         >
-          Save
+          {isPending ? "Saving…" : "Save"}
         </button>
         <button
           type="button"
@@ -191,7 +191,7 @@ export function ShotEditForm({
             setIsEditing(false);
           }}
           disabled={isPending}
-          className="rounded border border-black/[.08] px-4 py-2 text-sm dark:border-white/[.145]"
+          className="rounded border border-black/[.08] px-4 py-2 text-sm transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/[.145] dark:hover:bg-white/[.06]"
         >
           Cancel
         </button>

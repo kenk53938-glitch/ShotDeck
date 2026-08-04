@@ -43,7 +43,10 @@ export function ShotImportForm({
           <>
             {" "}
             Configure an AI provider in{" "}
-            <Link href="/settings" className="underline">
+            <Link
+              href="/settings"
+              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
+            >
               Settings
             </Link>{" "}
             for AI-assisted parsing.
