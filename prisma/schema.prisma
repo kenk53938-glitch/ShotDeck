@@ -1,0 +1,82 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum ProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ShotStatus {
+  PLANNED
+  PROMPTING
+  GENERATING
+  REVIEW
+  APPROVED
+  NEEDS_REWORK
+}
+
+enum TakeStatus {
+  GENERATING
+  READY
+  REJECTED
+  SELECTED
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      ProjectStatus @default(PLANNING)
+  youtubeUrl  String?
+  shots       Shot[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Shot {
+  id             String     @id @default(cuid())
+  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId      String
+  order          Int
+  title          String?
+  description    String?
+  prompt         String?
+  aiTool         String?
+  durationSeconds Float?
+  status         ShotStatus @default(PLANNED)
+  notes          String?
+  videoUrl       String?
+  takes          Take[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([projectId])
+}
+
+model Take {
+  id            String     @id @default(cuid())
+  shot          Shot       @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  shotId        String
+  versionNumber Int
+  status        TakeStatus @default(GENERATING)
+  fileUrl       String?
+  seed          String?
+  model         String?
+  cost          Float?
+  notes         String?
+  createdAt     DateTime   @default(now())
+
+  @@index([shotId])
+}
