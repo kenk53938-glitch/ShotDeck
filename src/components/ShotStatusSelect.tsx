@@ -3,6 +3,7 @@
 import { useRef, useTransition } from "react";
 import { updateShotStatus } from "@/app/actions";
 import type { ShotStatus } from "@/generated/prisma/enums";
+import { selectCompact } from "@/lib/styles";
 
 const STATUS_OPTIONS: ShotStatus[] = [
   "PLANNED",
@@ -42,7 +43,7 @@ export function ShotStatusSelect({
             formRef.current?.requestSubmit();
           })
         }
-        className="rounded border border-black/[.08] bg-transparent px-2 py-1 text-xs disabled:opacity-50 dark:border-white/[.145]"
+        className={selectCompact}
       >
         {STATUS_OPTIONS.map((option) => (
           <option key={option} value={option}>

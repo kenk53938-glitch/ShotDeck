@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updateTakeStatus } from "@/app/actions";
 import type { TakeStatus } from "@/generated/prisma/enums";
+import { selectCompact } from "@/lib/styles";
 
 const STATUS_OPTIONS: TakeStatus[] = [
   "GENERATING",
@@ -45,7 +46,7 @@ export function TakeStatusSelect({
             formRef.current?.requestSubmit();
           });
         }}
-        className="rounded border border-black/[.08] bg-transparent px-2 py-1 text-xs disabled:opacity-50 dark:border-white/[.145]"
+        className={selectCompact}
       >
         {STATUS_OPTIONS.map((option) => (
           <option key={option} value={option}>

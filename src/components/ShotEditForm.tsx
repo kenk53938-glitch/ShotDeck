@@ -2,6 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { updateShot } from "@/app/actions";
+import {
+  buttonPrimary,
+  buttonSecondary,
+  cardPadded,
+  chip,
+  fieldBase,
+  fieldLabel,
+  linkSubtle,
+} from "@/lib/styles";
 
 export function ShotEditForm({
   shot,
@@ -25,9 +34,9 @@ export function ShotEditForm({
 
   if (!isEditing) {
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             {shot.title ?? "Untitled shot"}
           </h1>
           <button
@@ -35,7 +44,7 @@ export function ShotEditForm({
               setError(null);
               setIsEditing(true);
             }}
-            className="text-xs text-zinc-500 hover:underline"
+            className={linkSubtle}
           >
             Edit
           </button>
@@ -49,22 +58,20 @@ export function ShotEditForm({
           <p className="text-zinc-600 dark:text-zinc-400">{shot.prompt}</p>
         )}
         {shot.negativePrompt && (
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Negative: {shot.negativePrompt}
           </p>
         )}
-        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          {shot.aiTool && (
-            <span className="rounded bg-black/[.04] px-1.5 py-0.5 dark:bg-white/[.06]">
-              {shot.aiTool}
-            </span>
-          )}
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+          {shot.aiTool && <span className={chip}>{shot.aiTool}</span>}
           {shot.durationSeconds !== null && (
             <span>{shot.durationSeconds}s</span>
           )}
         </div>
         {shot.notes && (
-          <p className="mt-1 text-sm text-zinc-500">Notes: {shot.notes}</p>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Notes: {shot.notes}
+          </p>
         )}
       </div>
     );
@@ -85,12 +92,12 @@ export function ShotEditForm({
           }
         });
       }}
-      className="flex flex-col gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+      className={`${cardPadded} flex flex-col gap-4`}
     >
       <input type="hidden" name="id" value={shot.id} />
       <input type="hidden" name="projectId" value={projectId} />
-      <div className="flex flex-col gap-1">
-        <label htmlFor="title" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="title" className={fieldLabel}>
           Title
         </label>
         <input
@@ -98,22 +105,22 @@ export function ShotEditForm({
           name="title"
           required
           defaultValue={shot.title ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="description" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="description" className={fieldLabel}>
           Description
         </label>
         <input
           id="description"
           name="description"
           defaultValue={shot.description ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="prompt" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="prompt" className={fieldLabel}>
           Prompt
         </label>
         <textarea
@@ -121,11 +128,11 @@ export function ShotEditForm({
           name="prompt"
           rows={3}
           defaultValue={shot.prompt ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="negativePrompt" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="negativePrompt" className={fieldLabel}>
           Negative prompt
         </label>
         <textarea
@@ -133,23 +140,23 @@ export function ShotEditForm({
           name="negativePrompt"
           rows={2}
           defaultValue={shot.negativePrompt ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="aiTool" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-1 flex-col gap-1.5">
+          <label htmlFor="aiTool" className={fieldLabel}>
             AI tool
           </label>
           <input
             id="aiTool"
             name="aiTool"
             defaultValue={shot.aiTool ?? ""}
-            className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+            className={fieldBase}
           />
         </div>
-        <div className="flex w-40 flex-col gap-1">
-          <label htmlFor="durationSeconds" className="text-xs text-zinc-500">
+        <div className="flex w-40 flex-col gap-1.5">
+          <label htmlFor="durationSeconds" className={fieldLabel}>
             Duration (s)
           </label>
           <input
@@ -158,30 +165,26 @@ export function ShotEditForm({
             type="number"
             step="0.1"
             defaultValue={shot.durationSeconds ?? ""}
-            className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+            className={fieldBase}
           />
         </div>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="notes" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="notes" className={fieldLabel}>
           Notes
         </label>
         <input
           id="notes"
           name="notes"
           defaultValue={shot.notes ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
       {error && (
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-        >
+        <button type="submit" disabled={isPending} className={buttonPrimary}>
           {isPending ? "Saving…" : "Save"}
         </button>
         <button
@@ -191,7 +194,7 @@ export function ShotEditForm({
             setIsEditing(false);
           }}
           disabled={isPending}
-          className="rounded border border-black/[.08] px-4 py-2 text-sm transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/[.145] dark:hover:bg-white/[.06]"
+          className={buttonSecondary}
         >
           Cancel
         </button>

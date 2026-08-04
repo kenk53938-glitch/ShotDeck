@@ -9,6 +9,19 @@ import { ShotImportForm } from "@/components/ShotImportForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { getAiProviderConfig } from "@/lib/settings";
 import type { ShotStatus } from "@/generated/prisma/enums";
+import {
+  buttonDangerOutlineSm,
+  buttonPrimary,
+  card,
+  cardPadded,
+  chip,
+  fieldBase,
+  fieldLabel,
+  iconButtonDanger,
+  linkMuted,
+  pageShellWide,
+  sectionLabel,
+} from "@/lib/styles";
 
 const COLUMNS: { status: ShotStatus; label: string }[] = [
   { status: "PLANNED", label: "Planned" },
@@ -51,9 +64,9 @@ export default async function ProjectBoard({
   );
 
   return (
-    <div className="flex min-h-screen flex-col gap-8 px-8 py-10">
+    <div className={`${pageShellWide} gap-8`}>
       <header className="flex flex-col gap-3">
-        <Link href="/" className="w-fit text-sm text-zinc-500 hover:underline">
+        <Link href="/" className={`w-fit ${linkMuted}`}>
           ← All projects
         </Link>
         <div className="flex items-start justify-between gap-4">
@@ -66,23 +79,21 @@ export default async function ProjectBoard({
               label="Delete project"
               pendingLabel="Deleting…"
               confirmMessage={`Delete "${project.title}" and all its shots?`}
-              className="rounded border border-red-200 px-3 py-1.5 text-xs text-red-600 transition-colors hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950"
+              className={buttonDangerOutlineSm}
             />
           </form>
         </div>
       </header>
 
-      <section className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
-        <h2 className="mb-3 text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Add shot
-        </h2>
+      <section className={cardPadded}>
+        <h2 className={`mb-4 ${sectionLabel}`}>Add shot</h2>
         <form
           action={createShot}
-          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          className="flex flex-col gap-4 sm:flex-row sm:items-end"
         >
           <input type="hidden" name="projectId" value={project.id} />
-          <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="title" className="text-xs text-zinc-500">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label htmlFor="title" className={fieldLabel}>
               Title
             </label>
             <input
@@ -90,22 +101,22 @@ export default async function ProjectBoard({
               name="title"
               required
               placeholder="e.g. Wide shot - skyline"
-              className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+              className={fieldBase}
             />
           </div>
-          <div className="flex flex-1 flex-col gap-1">
-            <label htmlFor="aiTool" className="text-xs text-zinc-500">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label htmlFor="aiTool" className={fieldLabel}>
               AI tool
             </label>
             <input
               id="aiTool"
               name="aiTool"
               placeholder="e.g. Runway Gen-3"
-              className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+              className={fieldBase}
             />
           </div>
-          <div className="flex flex-[2] flex-col gap-1">
-            <label htmlFor="prompt" className="text-xs text-zinc-500">
+          <div className="flex flex-[2] flex-col gap-1.5">
+            <label htmlFor="prompt" className={fieldLabel}>
               Prompt
             </label>
             <textarea
@@ -113,36 +124,30 @@ export default async function ProjectBoard({
               name="prompt"
               rows={1}
               placeholder="Optional"
-              className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+              className={fieldBase}
             />
           </div>
-          <SubmitButton
-            pendingText="Adding…"
-            className="h-fit rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-          >
+          <SubmitButton pendingText="Adding…" className={`h-fit ${buttonPrimary}`}>
             Add
           </SubmitButton>
         </form>
       </section>
 
-      <section className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
-        <ShotImportForm
-          projectId={project.id}
-          aiEnabled={!!aiConfig}
-        />
+      <section className={cardPadded}>
+        <ShotImportForm projectId={project.id} aiEnabled={!!aiConfig} />
       </section>
 
       <section className="flex gap-4 overflow-x-auto pb-4">
         {COLUMNS.map((column) => (
           <div
             key={column.status}
-            className="flex w-72 shrink-0 flex-col gap-3"
+            className="flex w-72 shrink-0 flex-col gap-3 rounded-xl bg-zinc-100/60 p-3 dark:bg-zinc-900/40"
           >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <div className="flex items-center justify-between px-1">
+              <h3 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
                 {column.label}
               </h3>
-              <span className="text-xs text-zinc-500">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-zinc-200 px-1.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
                 {shotsByStatus[column.status].length}
               </span>
             </div>
@@ -150,12 +155,12 @@ export default async function ProjectBoard({
               {shotsByStatus[column.status].map((shot) => (
                 <div
                   key={shot.id}
-                  className="flex flex-col gap-2 rounded-lg border border-black/[.08] p-3 dark:border-white/[.145]"
+                  className={`${card} flex flex-col gap-2 p-3 transition-shadow hover:shadow-md`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <Link
                       href={`/projects/${project.id}/shots/${shot.id}`}
-                      className="text-sm font-medium text-black hover:underline dark:text-zinc-50"
+                      className="text-sm font-medium text-zinc-900 transition-colors hover:text-indigo-600 dark:text-zinc-50 dark:hover:text-indigo-400"
                     >
                       {shot.title}
                     </Link>
@@ -169,30 +174,26 @@ export default async function ProjectBoard({
                       <ConfirmDeleteButton
                         label="✕"
                         confirmMessage={`Delete shot "${shot.title}"?`}
-                        className="text-xs text-zinc-400 transition-colors hover:text-red-500"
+                        className={iconButtonDanger}
                       />
                     </form>
                   </div>
                   {shot.prompt && (
-                    <p className="line-clamp-3 text-xs text-zinc-500">
+                    <p className="line-clamp-3 text-xs text-zinc-500 dark:text-zinc-400">
                       {shot.prompt}
                     </p>
                   )}
-                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-                    {shot.aiTool && (
-                      <span className="rounded bg-black/[.04] px-1.5 py-0.5 dark:bg-white/[.06]">
-                        {shot.aiTool}
-                      </span>
-                    )}
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {shot.aiTool && <span className={chip}>{shot.aiTool}</span>}
                     <Link
                       href={`/projects/${project.id}/shots/${shot.id}`}
-                      className="hover:underline"
+                      className="transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
                     >
                       {shot._count.takes}{" "}
                       {shot._count.takes === 1 ? "take" : "takes"}
                     </Link>
                     {shot.videoUrl && (
-                      <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      <span className="inline-flex items-center rounded-md bg-emerald-100 px-2 py-0.5 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300">
                         take selected
                       </span>
                     )}
@@ -205,7 +206,9 @@ export default async function ProjectBoard({
                 </div>
               ))}
               {shotsByStatus[column.status].length === 0 && (
-                <p className="text-xs text-zinc-400">No shots</p>
+                <p className="px-1 text-xs text-zinc-400 dark:text-zinc-600">
+                  No shots
+                </p>
               )}
             </div>
           </div>

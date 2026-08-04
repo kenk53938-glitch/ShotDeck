@@ -3,6 +3,14 @@
 import { useState, useTransition } from "react";
 import { updateProject } from "@/app/actions";
 import type { ProjectStatus } from "@/generated/prisma/enums";
+import {
+  buttonPrimary,
+  buttonSecondary,
+  cardPadded,
+  fieldBase,
+  fieldLabel,
+  linkSubtle,
+} from "@/lib/styles";
 
 const STATUS_OPTIONS: ProjectStatus[] = [
   "PLANNING",
@@ -29,9 +37,9 @@ export function ProjectEditForm({
 
   if (!isEditing) {
     return (
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
             {project.title}
           </h1>
           <button
@@ -39,7 +47,7 @@ export function ProjectEditForm({
               setError(null);
               setIsEditing(true);
             }}
-            className="text-xs text-zinc-500 hover:underline"
+            className={linkSubtle}
           >
             Edit
           </button>
@@ -77,11 +85,11 @@ export function ProjectEditForm({
           }
         });
       }}
-      className="flex flex-col gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]"
+      className={`${cardPadded} flex flex-col gap-4`}
     >
       <input type="hidden" name="id" value={project.id} />
-      <div className="flex flex-col gap-1">
-        <label htmlFor="title" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="title" className={fieldLabel}>
           Title
         </label>
         <input
@@ -89,30 +97,30 @@ export function ProjectEditForm({
           name="title"
           required
           defaultValue={project.title}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="description" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="description" className={fieldLabel}>
           Description
         </label>
         <input
           id="description"
           name="description"
           defaultValue={project.description ?? ""}
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+          className={fieldBase}
         />
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="flex flex-1 flex-col gap-1">
-          <label htmlFor="status" className="text-xs text-zinc-500">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="flex flex-1 flex-col gap-1.5">
+          <label htmlFor="status" className={fieldLabel}>
             Status
           </label>
           <select
             id="status"
             name="status"
             defaultValue={project.status}
-            className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+            className={fieldBase}
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
@@ -121,8 +129,8 @@ export function ProjectEditForm({
             ))}
           </select>
         </div>
-        <div className="flex flex-[2] flex-col gap-1">
-          <label htmlFor="youtubeUrl" className="text-xs text-zinc-500">
+        <div className="flex flex-[2] flex-col gap-1.5">
+          <label htmlFor="youtubeUrl" className={fieldLabel}>
             YouTube URL
           </label>
           <input
@@ -130,7 +138,7 @@ export function ProjectEditForm({
             name="youtubeUrl"
             placeholder="Optional"
             defaultValue={project.youtubeUrl ?? ""}
-            className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
+            className={fieldBase}
           />
         </div>
       </div>
@@ -138,11 +146,7 @@ export function ProjectEditForm({
         <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
       )}
       <div className="flex gap-2">
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
-        >
+        <button type="submit" disabled={isPending} className={buttonPrimary}>
           {isPending ? "Saving…" : "Save"}
         </button>
         <button
@@ -152,7 +156,7 @@ export function ProjectEditForm({
             setIsEditing(false);
           }}
           disabled={isPending}
-          className="rounded border border-black/[.08] px-4 py-2 text-sm transition-colors hover:bg-black/[.04] disabled:opacity-50 dark:border-white/[.145] dark:hover:bg-white/[.06]"
+          className={buttonSecondary}
         >
           Cancel
         </button>

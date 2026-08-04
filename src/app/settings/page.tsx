@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { getAiProviderSettingsRow, maskApiKey } from "@/lib/settings";
 import { AiSettingsForm } from "@/components/AiSettingsForm";
+import { cardPadded, linkMuted, pageShellNarrow, sectionLabel } from "@/lib/styles";
 
 export default async function SettingsPage() {
   const settings = await getAiProviderSettingsRow();
@@ -10,19 +12,20 @@ export default async function SettingsPage() {
   );
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col gap-8 px-8 py-10">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight text-black dark:text-zinc-50">
+    <div className={`${pageShellNarrow} flex flex-col gap-8`}>
+      <header className="flex flex-col gap-3">
+        <Link href="/" className={`w-fit ${linkMuted}`}>
+          ← Back to projects
+        </Link>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Settings
         </h1>
       </header>
 
-      <section className="flex flex-col gap-3 rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
+      <section className={`${cardPadded} flex flex-col gap-4`}>
         <div>
-          <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-            AI provider
-          </h2>
-          <p className="mt-1 text-xs text-zinc-500">
+          <h2 className={sectionLabel}>AI provider</h2>
+          <p className="mt-2 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             Optional. When configured, shot-list imports use this AI
             provider to parse the text instead of the built-in rule-based
             parser. Works with any OpenAI-compatible chat completions API
@@ -30,27 +33,29 @@ export default async function SettingsPage() {
             <a
               href="https://openrouter.ai"
               target="_blank"
-              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
+              className="underline transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
             >
               OpenRouter
             </a>{" "}
-            (base URL <span className="font-mono">https://openrouter.ai/api/v1</span>,
-            model e.g. <span className="font-mono">google/gemini-2.0-flash-exp</span>)
+            (base URL{" "}
+            <span className="font-mono">https://openrouter.ai/api/v1</span>,
+            model e.g.{" "}
+            <span className="font-mono">google/gemini-2.0-flash-exp</span>)
             or{" "}
             <a
               href="https://groq.com"
               target="_blank"
-              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
+              className="underline transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
             >
               Groq
             </a>{" "}
             (base URL{" "}
             <span className="font-mono">https://api.groq.com/openai/v1</span>,
-            model e.g. <span className="font-mono">llama-3.1-70b-versatile</span>).
-            Leave Model Name blank and a sensible default is picked based
-            on the base URL you enter.
+            model e.g. <span className="font-mono">llama-3.1-70b-versatile</span>
+            ). Leave Model Name blank and a sensible default is picked
+            based on the base URL you enter.
           </p>
-          <p className="mt-1 text-xs text-zinc-500">
+          <p className="mt-3 text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             ShotDeck is a local-only app with no user accounts, so the key
             is stored as plain text in your local SQLite database (
             <span className="font-mono">dev.db</span>) rather than

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { importShots, type ImportShotsResult } from "@/app/actions";
+import { buttonPrimary, chip, fieldBase, sectionLabel } from "@/lib/styles";
 
 export function ShotImportForm({
   projectId,
@@ -18,24 +19,22 @@ export function ShotImportForm({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
-          Import shots
-        </h2>
-        <span className="rounded bg-black/[.04] px-2 py-0.5 text-xs text-zinc-500 dark:bg-white/[.06]">
+        <h2 className={sectionLabel}>Import shots</h2>
+        <span className={chip}>
           {aiEnabled ? "Using AI parsing" : "Using rule-based parser"}
         </span>
       </div>
-      <p className="text-xs text-zinc-500">
+      <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
         Paste a shot list or upload a text file. Each shot needs a{" "}
-        <code className="rounded bg-black/[.04] px-1 dark:bg-white/[.06]">
+        <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
           Shot XX:
         </code>{" "}
         line and a{" "}
-        <code className="rounded bg-black/[.04] px-1 dark:bg-white/[.06]">
+        <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
           Prompt:
         </code>{" "}
         line — see{" "}
-        <code className="rounded bg-black/[.04] px-1 dark:bg-white/[.06]">
+        <code className="rounded bg-zinc-100 px-1 dark:bg-zinc-800">
           docs/shot-format.md
         </code>{" "}
         in the repo for the full format.
@@ -45,7 +44,7 @@ export function ShotImportForm({
             Configure an AI provider in{" "}
             <Link
               href="/settings"
-              className="underline transition-colors hover:text-black dark:hover:text-zinc-200"
+              className="underline transition-colors hover:text-zinc-900 dark:hover:text-zinc-200"
             >
               Settings
             </Link>{" "}
@@ -75,27 +74,27 @@ export function ShotImportForm({
           placeholder={
             "Shot 01: Wide shot - skyline\nPrompt: Drone pullback over a neon skyline, cinematic, dusk lighting"
           }
-          className="rounded border border-black/[.08] bg-transparent px-3 py-2 font-mono text-sm dark:border-white/[.145]"
+          className={`${fieldBase} font-mono`}
         />
         <div className="flex flex-wrap items-center gap-3">
           <input
             type="file"
             name="file"
             accept=".txt,.md,text/plain,text/markdown"
-            className="text-sm"
+            className="text-sm text-zinc-600 dark:text-zinc-400"
           />
           <button
             type="submit"
             disabled={isPending}
-            className="rounded bg-foreground px-4 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-50 dark:hover:bg-[#ccc]"
+            className={buttonPrimary}
           >
             {isPending ? "Importing…" : "Import"}
           </button>
         </div>
       </form>
       {result && (
-        <div className="flex flex-col gap-2 rounded-lg border border-black/[.08] p-3 text-sm dark:border-white/[.145]">
-          <p>
+        <div className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-sm dark:border-zinc-800 dark:bg-zinc-950">
+          <p className="text-zinc-700 dark:text-zinc-300">
             {result.imported > 0
               ? `Imported ${result.imported} ${
                   result.imported === 1 ? "shot" : "shots"
