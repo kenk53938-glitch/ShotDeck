@@ -82,4 +82,7 @@ locally in the SQLite database (see that page for details on how):
 - **API Key** — from whichever provider you're using.
 - **Model Name** — a model available on that provider, e.g.
   `google/gemini-2.0-flash-exp` on OpenRouter or `llama-3.1-70b-versatile`
-  on Groq.
+  on Groq. Optional: leave it blank and ShotDeck picks a free/cheap
+  default based on the base URL (see `src/lib/aiProviders.ts` for the
+  full list — currently Gemini, Groq, NVIDIA NIM, GLM/Zhipu, OpenRouter,
+  and a generic OpenAI-style fallback).

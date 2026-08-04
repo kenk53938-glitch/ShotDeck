@@ -47,6 +47,8 @@ export default async function SettingsPage() {
             (base URL{" "}
             <span className="font-mono">https://api.groq.com/openai/v1</span>,
             model e.g. <span className="font-mono">llama-3.1-70b-versatile</span>).
+            Leave Model Name blank and a sensible default is picked based
+            on the base URL you enter.
           </p>
           <p className="mt-1 text-xs text-zinc-500">
             ShotDeck is a local-only app with no user accounts, so the key

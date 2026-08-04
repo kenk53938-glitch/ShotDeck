@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseShotList } from "@/lib/shotParser";
 import { parseShotListWithAi } from "@/lib/aiParser";
+import { detectDefaultModel } from "@/lib/aiProviders";
 import {
   SETTINGS_ID,
   getAiProviderConfig,
@@ -426,15 +427,16 @@ export async function saveAiProviderSettings(
     "";
   const apiKey =
     String(formData.get("apiKey") ?? "").trim() || existing?.apiKey || "";
+  const modelNameRaw = String(formData.get("modelName") ?? "").trim();
   const modelName =
-    String(formData.get("modelName") ?? "").trim() ||
+    modelNameRaw ||
     existing?.modelName ||
-    "";
+    (apiBaseUrl ? detectDefaultModel(apiBaseUrl) : "");
 
-  if (!apiBaseUrl || !apiKey || !modelName) {
+  if (!apiBaseUrl || !apiKey) {
     return {
       success: false,
-      error: "API Base URL, API Key, and Model Name are all required.",
+      error: "API Base URL and API Key are required.",
     };
   }
   try {

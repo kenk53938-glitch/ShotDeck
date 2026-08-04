@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { saveAiProviderSettings, clearAiProviderSettings } from "@/app/actions";
+import { detectDefaultModel } from "@/lib/aiProviders";
 
 export function AiSettingsForm({
   configured,
@@ -19,6 +20,8 @@ export function AiSettingsForm({
   const [error, setError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
   const [justCleared, setJustCleared] = useState(false);
+  const [liveBaseUrl, setLiveBaseUrl] = useState(apiBaseUrl ?? "");
+  const suggestedModel = detectDefaultModel(liveBaseUrl);
 
   return (
     <div className="flex flex-col gap-3">
@@ -65,6 +68,7 @@ export function AiSettingsForm({
             name="apiBaseUrl"
             placeholder="e.g. https://openrouter.ai/api/v1 or https://api.groq.com/openai/v1"
             defaultValue={apiBaseUrl ?? ""}
+            onChange={(e) => setLiveBaseUrl(e.target.value)}
             className="rounded border border-black/[.08] bg-transparent px-3 py-2 font-mono text-sm dark:border-white/[.145]"
           />
         </div>
@@ -93,6 +97,9 @@ export function AiSettingsForm({
               defaultValue={modelName ?? ""}
               className="rounded border border-black/[.08] bg-transparent px-3 py-2 font-mono text-sm dark:border-white/[.145]"
             />
+            <p className="text-xs text-zinc-400">
+              Leave blank to use: <span className="font-mono">{suggestedModel}</span>
+            </p>
           </div>
         </div>
 
