@@ -1,28 +1,5 @@
 import type { ParsedShot, ParseResult } from "@/lib/shotParser";
-
-const DEFAULT_MODEL = "gemini-2.5-flash";
-
-const RESPONSE_SCHEMA = {
-  type: "object",
-  properties: {
-    shots: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          shotLabel: { type: "string" },
-          title: { type: "string", nullable: true },
-          durationSeconds: { type: "number", nullable: true },
-          tool: { type: "string", nullable: true },
-          prompt: { type: "string" },
-          negativePrompt: { type: "string", nullable: true },
-        },
-        required: ["shotLabel", "prompt"],
-      },
-    },
-  },
-  required: ["shots"],
-};
+import type { AiProviderConfig } from "@/lib/settings";
 
 const INSTRUCTIONS =
   "Parse the following shot list into structured shots, preserving the " +
@@ -32,57 +9,70 @@ const INSTRUCTIONS =
   "used (AI model, art style, etc.); a required prompt describing the " +
   "shot; and an optional negative prompt. This may describe video shots, " +
   "comic panels, or static image sequences — not every shot will have a " +
-  "duration or tool. Text:\n\n";
+  "duration or tool.\n\n" +
+  "Respond with ONLY a single JSON object in this exact shape, no " +
+  "markdown code fences, no explanation:\n" +
+  '{"shots": [{"shotLabel": string, "title": string|null, ' +
+  '"durationSeconds": number|null, "tool": string|null, "prompt": ' +
+  'string, "negativePrompt": string|null}]}\n\n' +
+  "Text:\n\n";
+
+function extractJson(text: string): string {
+  const trimmed = text.trim();
+  const fenceMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
+  return fenceMatch ? fenceMatch[1] : trimmed;
+}
 
 /**
- * AI-assisted parser using the Gemini API. Only called when an API key
- * is configured (via the Settings page or GEMINI_API_KEY in .env);
- * callers should catch errors and fall back to the rule-based parser
- * in shotParser.ts.
+ * AI-assisted parser that calls any OpenAI-compatible chat completions
+ * endpoint (OpenRouter, Groq, OpenAI itself, etc.) using settings saved
+ * on the Settings page. Callers should catch errors and fall back to
+ * the rule-based parser in shotParser.ts.
  */
-export async function parseShotListWithGemini(
+export async function parseShotListWithAi(
   input: string,
-  apiKey: string,
+  config: AiProviderConfig,
 ): Promise<ParseResult> {
-  if (!apiKey) {
-    throw new Error("No Gemini API key configured");
+  const { apiBaseUrl, apiKey, modelName } = config;
+  if (!apiBaseUrl || !apiKey || !modelName) {
+    throw new Error("AI provider is not fully configured");
   }
 
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  const url = `${apiBaseUrl.replace(/\/+$/, "")}/chat/completions`;
 
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: INSTRUCTIONS + input }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
-      },
+      model: modelName,
+      messages: [{ role: "user", content: INSTRUCTIONS + input }],
+      response_format: { type: "json_object" },
     }),
   });
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Gemini API error ${res.status}: ${body.slice(0, 200)}`);
+    throw new Error(`AI provider error ${res.status}: ${body.slice(0, 200)}`);
   }
 
   const data = await res.json();
-  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof text !== "string") {
-    throw new Error("Gemini returned no content");
+  const content = data?.choices?.[0]?.message?.content;
+  if (typeof content !== "string") {
+    throw new Error("AI provider returned no content");
   }
 
   let parsed: { shots?: unknown };
   try {
-    parsed = JSON.parse(text);
+    parsed = JSON.parse(extractJson(content));
   } catch {
-    throw new Error("Gemini returned invalid JSON");
+    throw new Error("AI provider returned invalid JSON");
   }
 
   if (!Array.isArray(parsed.shots)) {
-    throw new Error("Gemini response missing shots array");
+    throw new Error("AI provider response missing shots array");
   }
 
   const shots: ParsedShot[] = [];
@@ -118,7 +108,7 @@ export async function parseShotListWithGemini(
   });
 
   if (shots.length === 0 && errors.length === 0) {
-    errors.push("Gemini did not return any shots.");
+    errors.push("AI provider did not return any shots.");
   }
 
   return { shots, errors };

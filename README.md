@@ -35,7 +35,8 @@ Shots can be bulk-imported from pasted text or an uploaded file on each
 project's board, instead of adding them one by one. See
 [`docs/shot-format.md`](./docs/shot-format.md) for the expected format
 (works for video, comics, or any other shot-by-shot medium) and for how
-to enable optional AI-assisted parsing via a free Gemini API key.
+to enable optional AI-assisted parsing via any OpenAI-compatible
+provider, configured on the Settings page.
 
 ## Getting started
 

@@ -65,24 +65,21 @@ ShotDeck parses the text in one of two ways:
 
 1. **Rule-based (default, no setup required).** A deterministic parser
    that matches the fields above. This is what runs unless you configure
-   Gemini.
-2. **AI-assisted, via Google Gemini (optional).** If a Gemini API key is
-   configured, ShotDeck sends the pasted text to the Gemini API and asks
-   it to extract the same fields. This is more forgiving of shot lists
-   that don't follow the format exactly. If the Gemini API call fails for
-   any reason (no key, bad key, network error, quota), ShotDeck
-   automatically falls back to the rule-based parser — the Gemini key is
-   never required.
+   an AI provider.
+2. **AI-assisted (optional).** If an AI provider is configured, ShotDeck
+   sends the pasted text to it and asks it to extract the same fields.
+   This is more forgiving of shot lists that don't follow the format
+   exactly. If the request fails for any reason (bad key, network error,
+   quota, malformed response), ShotDeck automatically falls back to the
+   rule-based parser — an AI provider is never required.
 
-To get a free Gemini API key, see
-[Google AI Studio](https://aistudio.google.com/apikey). You can set it
-two ways:
+Configure it on the [Settings](/settings) page with three values, stored
+locally in the SQLite database (see that page for details on how):
 
-- **In the app:** go to [Settings](/settings) and paste it in. Stored
-  locally in the SQLite database — see the note on that page for details.
-- **In `.env`:**
-  ```
-  GEMINI_API_KEY="your-key-here"
-  ```
-  `.env` is gitignored — the key is never committed. A key saved in
-  Settings takes precedence over this if both are set.
+- **API Base URL** — any OpenAI-compatible chat completions endpoint,
+  e.g. `https://openrouter.ai/api/v1` ([OpenRouter](https://openrouter.ai))
+  or `https://api.groq.com/openai/v1` ([Groq](https://groq.com)).
+- **API Key** — from whichever provider you're using.
+- **Model Name** — a model available on that provider, e.g.
+  `google/gemini-2.0-flash-exp` on OpenRouter or `llama-3.1-70b-versatile`
+  on Groq.

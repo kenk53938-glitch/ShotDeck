@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseShotList } from "@/lib/shotParser";
-import { parseShotListWithGemini } from "@/lib/geminiParser";
-import { getGeminiApiKey, SETTINGS_ID } from "@/lib/settings";
+import { parseShotListWithAi } from "@/lib/aiParser";
+import {
+  SETTINGS_ID,
+  getAiProviderConfig,
+  getAiProviderSettingsRow,
+} from "@/lib/settings";
 import {
   MAX_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
@@ -293,7 +297,7 @@ export async function selectTake(formData: FormData) {
 export interface ImportShotsResult {
   imported: number;
   errors: string[];
-  parser: "gemini" | "rule-based";
+  parser: "ai" | "rule-based";
   fellBack: boolean;
 }
 
@@ -326,16 +330,16 @@ export async function importShots(
     };
   }
 
-  let parser: "gemini" | "rule-based" = "rule-based";
+  let parser: "ai" | "rule-based" = "rule-based";
   let fellBack = false;
   let result;
 
-  const geminiApiKey = await getGeminiApiKey();
+  const aiConfig = await getAiProviderConfig();
 
-  if (geminiApiKey) {
+  if (aiConfig) {
     try {
-      result = await parseShotListWithGemini(text, geminiApiKey);
-      parser = "gemini";
+      result = await parseShotListWithAi(text, aiConfig);
+      parser = "ai";
     } catch (err) {
       fellBack = true;
       const fallback = parseShotList(text);
@@ -411,21 +415,50 @@ export async function importShots(
   };
 }
 
-export async function saveGeminiApiKey(
+export async function saveAiProviderSettings(
   formData: FormData,
 ): Promise<ActionResult> {
-  const apiKey = String(formData.get("apiKey") ?? "").trim();
-  if (!apiKey) {
-    return { success: false, error: "Enter an API key." };
+  const existing = await getAiProviderSettingsRow();
+
+  const apiBaseUrl =
+    String(formData.get("apiBaseUrl") ?? "").trim() ||
+    existing?.apiBaseUrl ||
+    "";
+  const apiKey =
+    String(formData.get("apiKey") ?? "").trim() || existing?.apiKey || "";
+  const modelName =
+    String(formData.get("modelName") ?? "").trim() ||
+    existing?.modelName ||
+    "";
+
+  if (!apiBaseUrl || !apiKey || !modelName) {
+    return {
+      success: false,
+      error: "API Base URL, API Key, and Model Name are all required.",
+    };
   }
-  if (apiKey.length > 200) {
+  try {
+    new URL(apiBaseUrl);
+  } catch {
+    return {
+      success: false,
+      error: "Enter a valid URL, e.g. https://api.openai.com/v1",
+    };
+  }
+  if (apiBaseUrl.length > 500) {
+    return { success: false, error: "URL is too long." };
+  }
+  if (apiKey.length > 300) {
     return { success: false, error: "That doesn't look like a valid key." };
+  }
+  if (modelName.length > 200) {
+    return { success: false, error: "Model name is too long." };
   }
 
   await prisma.appSettings.upsert({
     where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, geminiApiKey: apiKey },
-    update: { geminiApiKey: apiKey },
+    create: { id: SETTINGS_ID, apiBaseUrl, apiKey, modelName },
+    update: { apiBaseUrl, apiKey, modelName },
   });
 
   revalidatePath("/settings");
@@ -434,11 +467,11 @@ export async function saveGeminiApiKey(
   return { success: true };
 }
 
-export async function clearGeminiApiKey(): Promise<ActionResult> {
+export async function clearAiProviderSettings(): Promise<ActionResult> {
   await prisma.appSettings.upsert({
     where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, geminiApiKey: null },
-    update: { geminiApiKey: null },
+    create: { id: SETTINGS_ID, apiBaseUrl: null, apiKey: null, modelName: null },
+    update: { apiBaseUrl: null, apiKey: null, modelName: null },
   });
 
   revalidatePath("/settings");

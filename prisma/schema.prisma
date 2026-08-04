@@ -82,9 +82,12 @@ model Take {
 }
 
 // Single-row table (id is always "singleton") for app-wide settings
-// managed through the UI, e.g. the Gemini API key.
+// managed through the UI: an OpenAI-compatible AI provider used for
+// AI-assisted shot-list parsing.
 model AppSettings {
-  id           String   @id
-  geminiApiKey String?
-  updatedAt    DateTime @updatedAt
+  id         String   @id
+  apiBaseUrl String?
+  apiKey     String?
+  modelName  String?
+  updatedAt  DateTime @updatedAt
 }

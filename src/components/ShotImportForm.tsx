@@ -6,10 +6,10 @@ import { importShots, type ImportShotsResult } from "@/app/actions";
 
 export function ShotImportForm({
   projectId,
-  geminiEnabled,
+  aiEnabled,
 }: {
   projectId: string;
-  geminiEnabled: boolean;
+  aiEnabled: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -22,7 +22,7 @@ export function ShotImportForm({
           Import shots
         </h2>
         <span className="rounded bg-black/[.04] px-2 py-0.5 text-xs text-zinc-500 dark:bg-white/[.06]">
-          {geminiEnabled ? "Using Gemini AI parsing" : "Using rule-based parser"}
+          {aiEnabled ? "Using AI parsing" : "Using rule-based parser"}
         </span>
       </div>
       <p className="text-xs text-zinc-500">
@@ -39,10 +39,10 @@ export function ShotImportForm({
           docs/shot-format.md
         </code>{" "}
         in the repo for the full format.
-        {!geminiEnabled && (
+        {!aiEnabled && (
           <>
             {" "}
-            Add a Gemini API key in{" "}
+            Configure an AI provider in{" "}
             <Link href="/settings" className="underline">
               Settings
             </Link>{" "}
