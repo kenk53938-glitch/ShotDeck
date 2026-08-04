@@ -2,6 +2,20 @@
 
 Shot-level production tracker for AI-generated YouTube videos.
 
+![ShotDeck screenshot](./docs/screenshot.png)
+<!-- TODO: replace with a real screenshot of the shot board -->
+
+## Why I built this
+
+I run production for a YouTube channel where each video has 40+ shots,
+and every shot needs its own prompt, AI tool, and take history tracked
+separately. Spreadsheets broke down fast — no per-shot take history,
+no easy way to see what's still in progress vs. approved, and prompts
+buried in cells nobody could search. ShotDeck replaces that with a
+proper shot board: each shot moves through a status pipeline, and every
+generation attempt (take) is logged with its own model, seed, cost, and
+outcome so I can pick the best one without losing track of the rest.
+
 ## Stack
 
 - [Next.js](https://nextjs.org) (App Router, TypeScript, Turbopack)
