@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { updateTakeStatus } from "@/app/actions";
 import type { TakeStatus } from "@/generated/prisma/enums";
 
@@ -24,6 +24,11 @@ export function TakeStatusSelect({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [value, setValue] = useState(status);
+
+  useEffect(() => {
+    setValue(status);
+  }, [status]);
 
   return (
     <form ref={formRef} action={updateTakeStatus} className="inline-block">
@@ -32,13 +37,14 @@ export function TakeStatusSelect({
       <input type="hidden" name="projectId" value={projectId} />
       <select
         name="status"
-        defaultValue={status}
+        value={value}
         disabled={isPending}
-        onChange={() =>
+        onChange={(e) => {
+          setValue(e.target.value as TakeStatus);
           startTransition(() => {
             formRef.current?.requestSubmit();
-          })
-        }
+          });
+        }}
         className="rounded border border-black/[.08] bg-transparent px-2 py-1 text-xs disabled:opacity-50 dark:border-white/[.145]"
       >
         {STATUS_OPTIONS.map((option) => (
