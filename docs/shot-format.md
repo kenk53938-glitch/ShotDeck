@@ -66,19 +66,23 @@ ShotDeck parses the text in one of two ways:
 1. **Rule-based (default, no setup required).** A deterministic parser
    that matches the fields above. This is what runs unless you configure
    Gemini.
-2. **AI-assisted, via Google Gemini (optional).** If you set a
-   `GEMINI_API_KEY` in your `.env` file, ShotDeck sends the pasted text to
-   the Gemini API and asks it to extract the same fields. This is more
-   forgiving of shot lists that don't follow the format exactly. If the
-   Gemini API call fails for any reason (no key, bad key, network error,
-   quota), ShotDeck automatically falls back to the rule-based parser —
-   the Gemini key is never required.
+2. **AI-assisted, via Google Gemini (optional).** If a Gemini API key is
+   configured, ShotDeck sends the pasted text to the Gemini API and asks
+   it to extract the same fields. This is more forgiving of shot lists
+   that don't follow the format exactly. If the Gemini API call fails for
+   any reason (no key, bad key, network error, quota), ShotDeck
+   automatically falls back to the rule-based parser — the Gemini key is
+   never required.
 
 To get a free Gemini API key, see
-[Google AI Studio](https://aistudio.google.com/apikey). Add it to `.env`:
+[Google AI Studio](https://aistudio.google.com/apikey). You can set it
+two ways:
 
-```
-GEMINI_API_KEY="your-key-here"
-```
-
-`.env` is gitignored — the key is never committed.
+- **In the app:** go to [Settings](/settings) and paste it in. Stored
+  locally in the SQLite database — see the note on that page for details.
+- **In `.env`:**
+  ```
+  GEMINI_API_KEY="your-key-here"
+  ```
+  `.env` is gitignored — the key is never committed. A key saved in
+  Settings takes precedence over this if both are set.

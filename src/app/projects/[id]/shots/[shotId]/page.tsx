@@ -93,19 +93,6 @@ export default async function ShotDetail({
                 className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
               />
             </div>
-            <div className="flex w-32 flex-col gap-1">
-              <label htmlFor="cost" className="text-xs text-zinc-500">
-                Cost ($)
-              </label>
-              <input
-                id="cost"
-                name="cost"
-                type="number"
-                step="0.01"
-                placeholder="Optional"
-                className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
-              />
-            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="fileUrl" className="text-xs text-zinc-500">
@@ -209,7 +196,6 @@ export default async function ShotDetail({
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
                   {take.model && <span>Model: {take.model}</span>}
                   {take.seed && <span>Seed: {take.seed}</span>}
-                  {take.cost !== null && <span>Cost: ${take.cost.toFixed(2)}</span>}
                   <span>{take.createdAt.toLocaleString()}</span>
                 </div>
                 {take.fileUrl && (

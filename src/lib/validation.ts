@@ -46,7 +46,3 @@ export const durationSchema = z.coerce
   .number("Duration must be a number.")
   .min(0, "Duration must be 0 or greater.")
   .max(3600, "Duration must be 3600 seconds or less.");
-
-export const costSchema = z.coerce
-  .number("Cost must be a number.")
-  .min(0, "Cost must be 0 or greater.");

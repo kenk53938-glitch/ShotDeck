@@ -35,16 +35,17 @@ const INSTRUCTIONS =
   "duration or tool. Text:\n\n";
 
 /**
- * AI-assisted parser using the Gemini API. Only called when
- * GEMINI_API_KEY is set; callers should catch errors and fall back to
- * the rule-based parser in shotParser.ts.
+ * AI-assisted parser using the Gemini API. Only called when an API key
+ * is configured (via the Settings page or GEMINI_API_KEY in .env);
+ * callers should catch errors and fall back to the rule-based parser
+ * in shotParser.ts.
  */
 export async function parseShotListWithGemini(
   input: string,
+  apiKey: string,
 ): Promise<ParseResult> {
-  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not set");
+    throw new Error("No Gemini API key configured");
   }
 
   const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;

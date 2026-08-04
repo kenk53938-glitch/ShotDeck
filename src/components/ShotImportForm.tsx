@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import { importShots, type ImportShotsResult } from "@/app/actions";
 
@@ -38,6 +39,16 @@ export function ShotImportForm({
           docs/shot-format.md
         </code>{" "}
         in the repo for the full format.
+        {!geminiEnabled && (
+          <>
+            {" "}
+            Add a Gemini API key in{" "}
+            <Link href="/settings" className="underline">
+              Settings
+            </Link>{" "}
+            for AI-assisted parsing.
+          </>
+        )}
       </p>
       <form
         ref={formRef}

@@ -5,10 +5,10 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { parseShotList } from "@/lib/shotParser";
 import { parseShotListWithGemini } from "@/lib/geminiParser";
+import { getGeminiApiKey, SETTINGS_ID } from "@/lib/settings";
 import {
   MAX_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
-  costSchema,
   durationSchema,
   projectStatusSchema,
   promptSchema,
@@ -226,10 +226,6 @@ export async function createTake(formData: FormData) {
   const seed = String(formData.get("seed") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
-  const costRaw = String(formData.get("cost") ?? "").trim();
-  const costResult = costRaw ? costSchema.safeParse(costRaw) : null;
-  if (costResult && !costResult.success) return;
-
   const lastTake = await prisma.take.findFirst({
     where: { shotId },
     orderBy: { versionNumber: "desc" },
@@ -243,7 +239,6 @@ export async function createTake(formData: FormData) {
       fileUrl: fileUrl || null,
       seed: seed || null,
       notes: notes || null,
-      cost: costResult?.data ?? null,
     },
   });
 
@@ -335,9 +330,11 @@ export async function importShots(
   let fellBack = false;
   let result;
 
-  if (process.env.GEMINI_API_KEY) {
+  const geminiApiKey = await getGeminiApiKey();
+
+  if (geminiApiKey) {
     try {
-      result = await parseShotListWithGemini(text);
+      result = await parseShotListWithGemini(text, geminiApiKey);
       parser = "gemini";
     } catch (err) {
       fellBack = true;
@@ -412,6 +409,42 @@ export async function importShots(
     parser,
     fellBack,
   };
+}
+
+export async function saveGeminiApiKey(
+  formData: FormData,
+): Promise<ActionResult> {
+  const apiKey = String(formData.get("apiKey") ?? "").trim();
+  if (!apiKey) {
+    return { success: false, error: "Enter an API key." };
+  }
+  if (apiKey.length > 200) {
+    return { success: false, error: "That doesn't look like a valid key." };
+  }
+
+  await prisma.appSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, geminiApiKey: apiKey },
+    update: { geminiApiKey: apiKey },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { success: true };
+}
+
+export async function clearGeminiApiKey(): Promise<ActionResult> {
+  await prisma.appSettings.upsert({
+    where: { id: SETTINGS_ID },
+    create: { id: SETTINGS_ID, geminiApiKey: null },
+    update: { geminiApiKey: null },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { success: true };
 }
 
 export async function deleteTake(formData: FormData) {

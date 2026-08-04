@@ -75,9 +75,16 @@ model Take {
   fileUrl       String?
   seed          String?
   model         String?
-  cost          Float?
   notes         String?
   createdAt     DateTime   @default(now())
 
   @@index([shotId])
+}
+
+// Single-row table (id is always "singleton") for app-wide settings
+// managed through the UI, e.g. the Gemini API key.
+model AppSettings {
+  id           String   @id
+  geminiApiKey String?
+  updatedAt    DateTime @updatedAt
 }

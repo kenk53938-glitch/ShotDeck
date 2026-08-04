@@ -6,6 +6,7 @@ import { ShotStatusSelect } from "@/components/ShotStatusSelect";
 import { ConfirmDeleteButton } from "@/components/ConfirmDeleteButton";
 import { ProjectEditForm } from "@/components/ProjectEditForm";
 import { ShotImportForm } from "@/components/ShotImportForm";
+import { getGeminiApiKey } from "@/lib/settings";
 import type { ShotStatus } from "@/generated/prisma/enums";
 
 const COLUMNS: { status: ShotStatus; label: string }[] = [
@@ -33,6 +34,8 @@ export default async function ProjectBoard({
   });
 
   if (!project) notFound();
+
+  const geminiApiKey = await getGeminiApiKey();
 
   const shotsByStatus = COLUMNS.reduce<
     Record<ShotStatus, typeof project.shots>
@@ -123,7 +126,7 @@ export default async function ProjectBoard({
       <section className="rounded-lg border border-black/[.08] p-4 dark:border-white/[.145]">
         <ShotImportForm
           projectId={project.id}
-          geminiEnabled={!!process.env.GEMINI_API_KEY}
+          geminiEnabled={!!geminiApiKey}
         />
       </section>
 
