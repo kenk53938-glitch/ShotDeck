@@ -39,20 +39,16 @@ to enable optional AI-assisted parsing via a free Gemini API key.
 
 ## Getting started
 
-Install dependencies and apply migrations:
-
 ```bash
-npm install
+cp .env.example .env
+npm ci
 npx prisma migrate dev
-```
-
-Run the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the app.
+Open [http://localhost:3000](http://localhost:3000) to use the app. The
+dev server binds to `127.0.0.1` only — this app has no auth and is meant
+to run locally, not be exposed on your network.
 
 ## Other scripts
 

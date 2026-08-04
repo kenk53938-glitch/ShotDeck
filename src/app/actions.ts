@@ -3,23 +3,29 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import type {
-  ProjectStatus,
-  ShotStatus,
-  TakeStatus,
-} from "@/generated/prisma/enums";
 import { parseShotList } from "@/lib/shotParser";
 import { parseShotListWithGemini } from "@/lib/geminiParser";
+import {
+  MAX_PROMPT_LENGTH,
+  MAX_TITLE_LENGTH,
+  costSchema,
+  durationSchema,
+  projectStatusSchema,
+  promptSchema,
+  shotStatusSchema,
+  takeStatusSchema,
+  titleSchema,
+} from "@/lib/validation";
 
 export async function createProject(formData: FormData) {
-  const title = String(formData.get("title") ?? "").trim();
-  if (!title) return;
+  const titleResult = titleSchema.safeParse(formData.get("title"));
+  if (!titleResult.success) return;
 
   const description = String(formData.get("description") ?? "").trim();
 
   const project = await prisma.project.create({
     data: {
-      title,
+      title: titleResult.data,
       description: description || null,
     },
   });
@@ -30,20 +36,23 @@ export async function createProject(formData: FormData) {
 
 export async function updateProject(formData: FormData) {
   const id = String(formData.get("id") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  if (!id || !title) return;
+  const titleResult = titleSchema.safeParse(formData.get("title"));
+  if (!id || !titleResult.success) return;
 
   const description = String(formData.get("description") ?? "").trim();
   const youtubeUrl = String(formData.get("youtubeUrl") ?? "").trim();
-  const status = String(formData.get("status") ?? "") as ProjectStatus;
+  const statusRaw = String(formData.get("status") ?? "");
+  const statusResult = statusRaw
+    ? projectStatusSchema.safeParse(statusRaw)
+    : null;
 
   await prisma.project.update({
     where: { id },
     data: {
-      title,
+      title: titleResult.data,
       description: description || null,
       youtubeUrl: youtubeUrl || null,
-      ...(status ? { status } : {}),
+      ...(statusResult?.success ? { status: statusResult.data } : {}),
     },
   });
 
@@ -63,10 +72,13 @@ export async function deleteProject(formData: FormData) {
 
 export async function createShot(formData: FormData) {
   const projectId = String(formData.get("projectId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  if (!projectId || !title) return;
+  const titleResult = titleSchema.safeParse(formData.get("title"));
+  if (!projectId || !titleResult.success) return;
 
-  const prompt = String(formData.get("prompt") ?? "").trim();
+  const promptRaw = String(formData.get("prompt") ?? "").trim();
+  const promptResult = promptRaw ? promptSchema.safeParse(promptRaw) : null;
+  if (promptResult && !promptResult.success) return;
+
   const aiTool = String(formData.get("aiTool") ?? "").trim();
 
   const lastShot = await prisma.shot.findFirst({
@@ -77,8 +89,8 @@ export async function createShot(formData: FormData) {
   await prisma.shot.create({
     data: {
       projectId,
-      title,
-      prompt: prompt || null,
+      title: titleResult.data,
+      prompt: promptResult?.data ?? null,
       aiTool: aiTool || null,
       order: (lastShot?.order ?? 0) + 1,
     },
@@ -90,30 +102,42 @@ export async function createShot(formData: FormData) {
 export async function updateShot(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
-  const title = String(formData.get("title") ?? "").trim();
-  if (!id || !projectId || !title) return;
+  const titleResult = titleSchema.safeParse(formData.get("title"));
+  if (!id || !projectId || !titleResult.success) return;
 
   const description = String(formData.get("description") ?? "").trim();
-  const prompt = String(formData.get("prompt") ?? "").trim();
-  const negativePrompt = String(formData.get("negativePrompt") ?? "").trim();
+
+  const promptRaw = String(formData.get("prompt") ?? "").trim();
+  const promptResult = promptRaw ? promptSchema.safeParse(promptRaw) : null;
+  if (promptResult && !promptResult.success) return;
+
+  const negativePromptRaw = String(
+    formData.get("negativePrompt") ?? "",
+  ).trim();
+  const negativePromptResult = negativePromptRaw
+    ? promptSchema.safeParse(negativePromptRaw)
+    : null;
+  if (negativePromptResult && !negativePromptResult.success) return;
+
   const aiTool = String(formData.get("aiTool") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+
   const durationRaw = String(formData.get("durationSeconds") ?? "").trim();
-  const durationSeconds = durationRaw ? Number(durationRaw) : null;
+  const durationResult = durationRaw
+    ? durationSchema.safeParse(durationRaw)
+    : null;
+  if (durationResult && !durationResult.success) return;
 
   await prisma.shot.update({
     where: { id },
     data: {
-      title,
+      title: titleResult.data,
       description: description || null,
-      prompt: prompt || null,
-      negativePrompt: negativePrompt || null,
+      prompt: promptResult?.data ?? null,
+      negativePrompt: negativePromptResult?.data ?? null,
       aiTool: aiTool || null,
       notes: notes || null,
-      durationSeconds:
-        durationSeconds !== null && !Number.isNaN(durationSeconds)
-          ? durationSeconds
-          : null,
+      durationSeconds: durationResult?.data ?? null,
     },
   });
 
@@ -124,12 +148,12 @@ export async function updateShot(formData: FormData) {
 export async function updateShotStatus(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
-  const status = String(formData.get("status") ?? "") as ShotStatus;
-  if (!id || !projectId || !status) return;
+  const statusResult = shotStatusSchema.safeParse(formData.get("status"));
+  if (!id || !projectId || !statusResult.success) return;
 
   await prisma.shot.update({
     where: { id },
-    data: { status },
+    data: { status: statusResult.data },
   });
 
   revalidatePath(`/projects/${projectId}`);
@@ -154,8 +178,10 @@ export async function createTake(formData: FormData) {
   const fileUrl = String(formData.get("fileUrl") ?? "").trim();
   const seed = String(formData.get("seed") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
+
   const costRaw = String(formData.get("cost") ?? "").trim();
-  const cost = costRaw ? Number(costRaw) : null;
+  const costResult = costRaw ? costSchema.safeParse(costRaw) : null;
+  if (costResult && !costResult.success) return;
 
   const lastTake = await prisma.take.findFirst({
     where: { shotId },
@@ -170,7 +196,7 @@ export async function createTake(formData: FormData) {
       fileUrl: fileUrl || null,
       seed: seed || null,
       notes: notes || null,
-      cost: cost !== null && !Number.isNaN(cost) ? cost : null,
+      cost: costResult?.data ?? null,
     },
   });
 
@@ -182,12 +208,12 @@ export async function updateTakeStatus(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const shotId = String(formData.get("shotId") ?? "");
   const projectId = String(formData.get("projectId") ?? "");
-  const status = String(formData.get("status") ?? "") as TakeStatus;
-  if (!id || !shotId || !projectId || !status) return;
+  const statusResult = takeStatusSchema.safeParse(formData.get("status"));
+  if (!id || !shotId || !projectId || !statusResult.success) return;
 
   await prisma.take.update({
     where: { id },
-    data: { status },
+    data: { status: statusResult.data },
   });
 
   revalidatePath(`/projects/${projectId}/shots/${shotId}`);
@@ -289,15 +315,26 @@ export async function importShots(
   let nextOrder = (lastShot?.order ?? 0) + 1;
 
   for (const shot of result.shots) {
+    const title = (shot.title ?? `Shot ${shot.shotLabel}`).slice(
+      0,
+      MAX_TITLE_LENGTH,
+    );
+    const prompt = shot.prompt.slice(0, MAX_PROMPT_LENGTH);
+    const negativePrompt = shot.negativePrompt?.slice(0, MAX_PROMPT_LENGTH) ?? null;
+    const durationSeconds =
+      shot.durationSeconds !== null
+        ? Math.min(3600, Math.max(0, shot.durationSeconds))
+        : null;
+
     await prisma.shot.create({
       data: {
         projectId,
         order: nextOrder++,
-        title: shot.title ?? `Shot ${shot.shotLabel}`,
-        prompt: shot.prompt,
-        negativePrompt: shot.negativePrompt,
+        title,
+        prompt,
+        negativePrompt,
         aiTool: shot.tool,
-        durationSeconds: shot.durationSeconds,
+        durationSeconds,
       },
     });
   }

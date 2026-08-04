@@ -107,9 +107,10 @@ export function ShotEditForm({
         <label htmlFor="prompt" className="text-xs text-zinc-500">
           Prompt
         </label>
-        <input
+        <textarea
           id="prompt"
           name="prompt"
+          rows={3}
           defaultValue={shot.prompt ?? ""}
           className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
         />
@@ -118,9 +119,10 @@ export function ShotEditForm({
         <label htmlFor="negativePrompt" className="text-xs text-zinc-500">
           Negative prompt
         </label>
-        <input
+        <textarea
           id="negativePrompt"
           name="negativePrompt"
+          rows={2}
           defaultValue={shot.negativePrompt ?? ""}
           className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
         />

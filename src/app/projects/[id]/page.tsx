@@ -103,9 +103,10 @@ export default async function ProjectBoard({
             <label htmlFor="prompt" className="text-xs text-zinc-500">
               Prompt
             </label>
-            <input
+            <textarea
               id="prompt"
               name="prompt"
+              rows={1}
               placeholder="Optional"
               className="rounded border border-black/[.08] bg-transparent px-3 py-2 text-sm dark:border-white/[.145]"
             />
