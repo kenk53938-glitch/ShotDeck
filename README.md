@@ -3,7 +3,6 @@
 Shot-level production tracker for AI-generated YouTube videos.
 
 ![ShotDeck screenshot](./docs/screenshot.png)
-<!-- TODO: replace with a real screenshot of the shot board -->
 
 ## Why I built this
 
