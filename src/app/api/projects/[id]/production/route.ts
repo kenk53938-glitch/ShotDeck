@@ -35,6 +35,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const jobId = String(body.jobId ?? "");
       const job = await prisma.generationJob.findFirst({ where: { id: jobId, shot: { projectId: id } } });
       if (!job) return NextResponse.json({ success: false, error: "Job not found in this project." }, { status: 404 });
+      const active = await prisma.generationJob.findFirst({ where: { shotId: job.shotId, type: job.type, status: { in: ["QUEUED", "RUNNING"] } } });
+      if (active) return NextResponse.json({ success: false, error: "A job of this type is already queued or running for this shot." }, { status: 409 });
       const queued = await queueShotInComfy(job.shotId, job.type);
       return NextResponse.json({ success: true, queued });
     }
@@ -43,13 +45,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const mediaKind = action === "approve-final" ? "FINAL" : "PREVIEW";
       const shot = await prisma.shot.findFirst({ where: { id: shotId, projectId: id } });
       const assetPath = mediaKind === "FINAL" ? shot?.finalVideoPath : shot?.previewVideoPath;
-      if (!shot || !assetPath) {
-        return NextResponse.json({ success: false, error: `This shot has no ${mediaKind === "FINAL" ? "final 1080p" : "preview"} clip to approve.` }, { status: 409 });
-      }
+      if (!shot || !assetPath) return NextResponse.json({ success: false, error: `This shot has no ${mediaKind === "FINAL" ? "final 1080p" : "preview"} clip to approve.` }, { status: 409 });
       const take = await prisma.take.findFirst({ where: { shotId, mediaKind, status: { in: ["READY", "SELECTED"] } }, orderBy: { versionNumber: "desc" } });
-      if (!take) {
-        return NextResponse.json({ success: false, error: `No ready ${mediaKind.toLowerCase()} Take was found for this shot.` }, { status: 409 });
-      }
+      if (!take) return NextResponse.json({ success: false, error: `No ready ${mediaKind.toLowerCase()} Take was found for this shot.` }, { status: 409 });
       await prisma.$transaction([
         prisma.take.updateMany({ where: { shotId, id: { not: take.id }, isSelected: true }, data: { isSelected: false, status: "READY" } }),
         prisma.take.update({ where: { id: take.id }, data: { isSelected: true, status: "SELECTED" } }),
@@ -63,7 +61,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const shots = await prisma.shot.findMany({ where: { ...(type === "UPSCALE" ? { projectId: id, status: "APPROVED", previewVideoPath: { not: null } } : { projectId: id, status: "APPROVED", sourceImagePath: { not: null }, motionPrompt: { not: null } }), ...(requestedIds.length ? { id: { in: requestedIds } } : {}) }, orderBy: { order: "asc" } });
       const results = [];
       for (const shot of shots) {
-        try { const queued = await queueShotInComfy(shot.id, type); results.push({ shotId: shot.id, ok: true, ...queued }); }
+        const active = await prisma.generationJob.findFirst({ where: { shotId: shot.id, type, status: { in: ["QUEUED", "RUNNING"] } } });
+        if (active) { results.push({ shotId: shot.id, ok: true, skipped: true, reason: "Already queued or running" }); continue; }
+        try { const queued = await queueShotInComfy(shot.id, type); results.push({ shotId: shot.id, ok: true, skipped: false, ...queued }); }
         catch (error) { results.push({ shotId: shot.id, ok: false, error: error instanceof Error ? error.message : "Queue failed" }); }
       }
       return NextResponse.json({ success: true, results });

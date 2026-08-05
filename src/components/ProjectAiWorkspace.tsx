@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { buttonDanger, buttonPrimary, buttonSecondary, cardPadded, fieldBase, fieldLabel, sectionLabel } from "@/lib/styles";
 
 type ShotSummary = { id: string; order: number; title: string | null; status: string; hasPrompt: boolean };
@@ -10,6 +11,7 @@ export function ProjectAiWorkspace({ project, shots }: {
   project: { id: string; styleGuide: string | null; referenceImageUrl: string | null; referenceImagePath: string | null; fixedNegativePrompt: string | null; defaultWidth: number; defaultHeight: number; defaultFps: number };
   shots: ShotSummary[];
 }) {
+  const router = useRouter();
   const uploadRef = useRef<HTMLInputElement>(null);
   const [referenceUrl, setReferenceUrl] = useState(project.referenceImageUrl);
   const [busy, setBusy] = useState<string | null>(null);
@@ -24,6 +26,7 @@ export function ProjectAiWorkspace({ project, shots }: {
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error ?? "Settings were not saved.");
       setMessage("Project AI settings saved.");
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Settings were not saved."); }
     finally { setBusy(null); }
   }
@@ -39,6 +42,7 @@ export function ProjectAiWorkspace({ project, shots }: {
       if (!response.ok || !data.success) throw new Error(data.error ?? "Upload failed.");
       setReferenceUrl(data.url); setMessage("Reference image updated.");
       if (uploadRef.current) uploadRef.current.value = "";
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Upload failed."); }
     finally { setBusy(null); }
   }
@@ -50,6 +54,7 @@ export function ProjectAiWorkspace({ project, shots }: {
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error ?? "Could not remove the reference image.");
       setReferenceUrl(null); setMessage("Reference image removed.");
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not remove the reference image."); }
     finally { setBusy(null); }
   }
@@ -70,6 +75,7 @@ export function ProjectAiWorkspace({ project, shots }: {
       setProgress({ done: index + 1, total: eligible.length });
     }
     setBusy(null);
+    router.refresh();
     if (failures.length) setError(`${failures.length} shot(s) failed:\n${failures.join("\n")}`);
     else setMessage(`Generated ${eligible.length} prompt set(s). Open each shot to review or edit.`);
   }
