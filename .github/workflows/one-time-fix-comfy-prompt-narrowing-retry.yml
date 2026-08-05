@@ -1,0 +1,39 @@
+name: Retry ComfyUI prompt narrowing fix
+
+on:
+  push:
+    branches: [feature/ai-production-pipeline]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'Apply ComfyUI prompt narrowing fix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: feature/ai-production-pipeline
+      - name: Apply focused TypeScript assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/lib/production.ts")
+          text = path.read_text(encoding="utf-8")
+          positive = "shot.positivePrompt.trim()"
+          negative = "shot.negativePrompt.trim()"
+          if text.count(positive) != 1 or text.count(negative) != 1:
+              raise SystemExit("Expected each prompt injection exactly once.")
+          text = text.replace(positive, "shot.positivePrompt!.trim()")
+          text = text.replace(negative, "shot.negativePrompt!.trim()")
+          path.write_text(text, encoding="utf-8")
+          PY
+      - name: Commit the fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/lib/production.ts
+          git commit -m "Fix ComfyUI prompt type narrowing"
+          git push origin HEAD:feature/ai-production-pipeline
