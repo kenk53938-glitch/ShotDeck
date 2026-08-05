@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is your Prisma schema file
 
 generator client {
   provider = "prisma-client"
@@ -34,34 +33,63 @@ enum TakeStatus {
   SELECTED
 }
 
+enum JobType {
+  IMAGE_TO_VIDEO
+  UPSCALE
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
 model Project {
-  id          String        @id @default(cuid())
-  title       String
-  description String?
-  status      ProjectStatus @default(PLANNING)
-  youtubeUrl  String?
-  shots       Shot[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                  String        @id @default(cuid())
+  title               String
+  description         String?
+  status              ProjectStatus @default(PLANNING)
+  youtubeUrl          String?
+  styleGuide          String?
+  referenceImagePath  String?
+  fixedNegativePrompt String?
+  defaultWidth        Int           @default(768)
+  defaultHeight       Int           @default(432)
+  defaultFps          Int           @default(24)
+  shots               Shot[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 model Shot {
-  id             String     @id @default(cuid())
-  project        Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId      String
-  order          Int
-  title          String?
-  description    String?
-  prompt         String?
-  negativePrompt String?
-  aiTool         String?
-  durationSeconds Float?
-  status         ShotStatus @default(PLANNED)
-  notes          String?
-  videoUrl       String?
-  takes          Take[]
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  id               String     @id @default(cuid())
+  project          Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId        String
+  order            Int
+  title            String?
+  description      String?
+  prompt           String?
+  stillPrompt      String?
+  motionPrompt     String?
+  negativePrompt   String?
+  aiTool           String?
+  durationSeconds  Float?
+  status           ShotStatus @default(PLANNED)
+  notes            String?
+  sourceImagePath  String?
+  previewVideoPath String?
+  finalVideoPath   String?
+  videoUrl         String?
+  seed             String?
+  width            Int?
+  height           Int?
+  fps              Int?
+  takes            Take[]
+  jobs             GenerationJob[]
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
 
   @@index([projectId])
 }
@@ -81,9 +109,24 @@ model Take {
   @@index([shotId])
 }
 
-// Single-row table (id is always "singleton") for app-wide settings
-// managed through the UI: an OpenAI-compatible AI provider used for
-// AI-assisted shot-list parsing.
+model GenerationJob {
+  id             String    @id @default(cuid())
+  shot           Shot      @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  shotId         String
+  type           JobType
+  status         JobStatus @default(QUEUED)
+  comfyPromptId  String?
+  workflowPreset String?
+  inputPath      String?
+  outputPath     String?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+
+  @@index([shotId])
+  @@index([status])
+}
+
 model AppSettings {
   id         String   @id
   apiBaseUrl String?
