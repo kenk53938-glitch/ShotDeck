@@ -12,14 +12,25 @@ jobs:
     env:
       DATABASE_URL: file:./ci.db
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 20
           cache: npm
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
-      - run: npm run lint
+      - name: Run lint
+        id: lint
+        continue-on-error: true
+        run: npm run lint > lint-output.txt 2>&1
+      - name: Publish lint diagnostics
+        if: steps.lint.outcome == 'failure'
+        run: |
+          echo '### ESLint output' >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat lint-output.txt | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          exit 1
       - run: npm run typecheck
       - run: npm run build
