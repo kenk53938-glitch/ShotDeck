@@ -32,6 +32,11 @@ Run this checklist on the production Windows machine before merging the feature 
 
 ## ComfyUI
 
+- [ ] Confirm WAN node `97` receives the selected image path
+- [ ] Confirm node `129:93` receives the shot positive prompt
+- [ ] Confirm node `129:89` receives the shot negative prompt
+- [ ] Confirm colon-containing node IDs are not truncated or parsed as integers
+- [ ] Confirm the upscale workflow uses nodes `1` and `4` without requiring either prompt node
 - [ ] Queue at least two approved shots and confirm they render sequentially
 - [ ] Confirm queued/running/completed state updates
 - [ ] Confirm a completed preview creates a PREVIEW Take
