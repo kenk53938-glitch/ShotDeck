@@ -15,11 +15,12 @@ export async function POST(
     if (!expectedShotId || take.shotId !== expectedShotId) {
       return NextResponse.json({ success: false, error: "This take does not belong to the requested shot." }, { status: 409 });
     }
-    if (!['READY', 'SELECTED'].includes(take.status)) {
+    if (!["READY", "SELECTED"].includes(take.status)) {
       return NextResponse.json({ success: false, error: "Only ready takes can be selected." }, { status: 409 });
     }
 
-    const selectedPath = take.fileUrl ?? take.localPath;
+    const displayPath = take.fileUrl ?? take.localPath;
+    const localPath = take.localPath ?? take.fileUrl;
     await prisma.$transaction([
       prisma.take.updateMany({
         where: { shotId: take.shotId, id: { not: take.id }, isSelected: true },
@@ -29,10 +30,10 @@ export async function POST(
       prisma.shot.update({
         where: { id: take.shotId },
         data: {
-          videoUrl: selectedPath,
-          ...(take.mediaKind === "STILL" ? { sourceImagePath: selectedPath, status: "REVIEW" as const } : {}),
-          ...(take.mediaKind === "PREVIEW" ? { previewVideoPath: selectedPath, status: "REVIEW" as const } : {}),
-          ...(take.mediaKind === "FINAL" ? { finalVideoPath: selectedPath, status: "APPROVED" as const } : {}),
+          videoUrl: displayPath,
+          ...(take.mediaKind === "STILL" ? { sourceImagePath: localPath, status: "REVIEW" as const } : {}),
+          ...(take.mediaKind === "PREVIEW" ? { previewVideoPath: localPath, status: "REVIEW" as const } : {}),
+          ...(take.mediaKind === "FINAL" ? { finalVideoPath: localPath, status: "APPROVED" as const } : {}),
         },
       }),
     ]);

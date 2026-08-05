@@ -83,7 +83,7 @@ export async function POST(
       report.duplicates.push({ shotId: shot.id, shotOrder: shot.order, files: shotFiles.map((file) => file.name) });
     }
 
-    const existingSelected = await prisma.take.findFirst({ where: { shotId: shot.id, isSelected: true, mediaKind: "STILL" } });
+    const existingSelected = await prisma.take.findFirst({ where: { shotId: shot.id, isSelected: true } });
     let shouldSelect = !existingSelected;
     for (const file of shotFiles) {
       try {
@@ -95,7 +95,7 @@ export async function POST(
             versionNumber: (lastTake?.versionNumber ?? 0) + 1,
             status: shouldSelect ? "SELECTED" : "READY",
             fileUrl: saved.url,
-            localPath: saved.relativePath,
+            localPath: saved.fullPath,
             originalFileName: file.name,
             mediaKind: "STILL",
             model: "Manual image upload",
@@ -103,7 +103,7 @@ export async function POST(
           },
         });
         if (shouldSelect) {
-          await prisma.shot.update({ where: { id: shot.id }, data: { sourceImagePath: saved.url, status: "REVIEW" } });
+          await prisma.shot.update({ where: { id: shot.id }, data: { sourceImagePath: saved.fullPath, status: "REVIEW" } });
           shouldSelect = false;
         }
         report.matched.push({ fileName: file.name, shotId: shot.id, shotOrder: shot.order, shotTitle: shot.title, takeId: take.id });
