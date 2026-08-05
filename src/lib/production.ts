@@ -380,13 +380,13 @@ export async function queueShotInComfy(
       process.env.COMFY_POSITIVE_PROMPT_INPUT ??
         process.env.COMFY_PROMPT_INPUT ??
         "text",
-      shot.positivePrompt.trim(),
+      shot.positivePrompt!.trim(),
     );
     setNodeInput(
       workflow,
       negativePromptNode,
       process.env.COMFY_NEGATIVE_PROMPT_INPUT ?? "text",
-      shot.negativePrompt.trim(),
+      shot.negativePrompt!.trim(),
     );
     setOptionalNodeInput(
       workflow,
