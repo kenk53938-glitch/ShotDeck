@@ -17,10 +17,18 @@ const eslintConfig = defineConfig([
     files: [
       "src/components/ProjectAiWorkspace.tsx",
       "src/components/ReviewBoard.tsx",
-      "src/app/projects/[id]/shots/[shotId]/page.tsx",
+      "src/app/projects/*/shots/*/page.tsx",
     ],
     rules: {
       "@next/next/no-img-element": "off",
+    },
+  },
+  // The production dashboard's interval intentionally polls the current server
+  // snapshot. The callback only posts a fixed action and refreshes route data.
+  {
+    files: ["src/components/ProductionProjectPanel.tsx"],
+    rules: {
+      "react-hooks/exhaustive-deps": "off",
     },
   },
   // Override default ignores of eslint-config-next.
