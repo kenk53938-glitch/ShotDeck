@@ -1,5 +1,3 @@
-// This is your Prisma schema file
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -53,6 +51,7 @@ model Project {
   status              ProjectStatus @default(PLANNING)
   youtubeUrl          String?
   styleGuide          String?
+  referenceImageUrl   String?
   referenceImagePath  String?
   fixedNegativePrompt String?
   defaultWidth        Int           @default(768)
@@ -71,6 +70,7 @@ model Shot {
   title            String?
   description      String?
   prompt           String?
+  positivePrompt   String?
   stillPrompt      String?
   motionPrompt     String?
   negativePrompt   String?
@@ -92,21 +92,28 @@ model Shot {
   updatedAt        DateTime   @updatedAt
 
   @@index([projectId])
+  @@index([projectId, order])
 }
 
 model Take {
-  id            String     @id @default(cuid())
-  shot          Shot       @relation(fields: [shotId], references: [id], onDelete: Cascade)
-  shotId        String
-  versionNumber Int
-  status        TakeStatus @default(GENERATING)
-  fileUrl       String?
-  seed          String?
-  model         String?
-  notes         String?
-  createdAt     DateTime   @default(now())
+  id               String     @id @default(cuid())
+  shot             Shot       @relation(fields: [shotId], references: [id], onDelete: Cascade)
+  shotId           String
+  versionNumber    Int
+  status           TakeStatus @default(GENERATING)
+  fileUrl          String?
+  localPath        String?
+  originalFileName String?
+  mediaKind        String?
+  seed             String?
+  model            String?
+  notes            String?
+  rating           Int?
+  isSelected       Boolean    @default(false)
+  createdAt        DateTime   @default(now())
 
   @@index([shotId])
+  @@index([shotId, isSelected])
 }
 
 model GenerationJob {
@@ -119,12 +126,16 @@ model GenerationJob {
   workflowPreset String?
   inputPath      String?
   outputPath     String?
+  outputTakeId   String?
+  progress       Int       @default(0)
   errorMessage   String?
   createdAt      DateTime  @default(now())
+  lastCheckedAt  DateTime?
   completedAt    DateTime?
 
   @@index([shotId])
   @@index([status])
+  @@index([comfyPromptId])
 }
 
 model AppSettings {
