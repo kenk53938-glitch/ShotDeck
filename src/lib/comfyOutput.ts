@@ -1,5 +1,5 @@
 import { copyFile, mkdir } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { prisma } from "@/lib/prisma";
 import { mediaUrl, STORAGE_ROOT } from "@/lib/storage";
 
