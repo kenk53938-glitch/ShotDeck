@@ -23,14 +23,18 @@ The supplied WAN 2.2 API workflow uses these nodes:
 - `97` — `LoadImage`, input `image`
 - `129:93` — `CLIPTextEncode`, positive input `text`
 - `129:89` — `CLIPTextEncode`, negative input `text`
+- `129:98` — `WanImageToVideo`, inputs `width` and `height`
+- `129:161` — duration primitive, input `value`
+- `129:162` — FPS primitive, input `value`
+- `129:86` — primary sampler seed, input `noise_seed`
 - `108` — `SaveVideo`, output prefix input `filename_prefix`
 
 The supplied upscale API workflow uses:
 
 - `1` — `VHS_LoadVideo`, input `video`
-- `4` — `VHS_VideoCombine`, output prefix input `filename_prefix`
-- `5` — optional 1920×1080 width/height injection
-- `4` — optional `frame_rate` injection
+- `4` — `VHS_VideoCombine`, inputs `filename_prefix` and `frame_rate`
+- `5` — `ImageScale`, inputs `width` and `height`
+- no text-prompt node
 
 Configure `.env`:
 
@@ -50,13 +54,23 @@ COMFY_NEGATIVE_PROMPT_INPUT=text
 COMFY_OUTPUT_NODE=108
 COMFY_OUTPUT_INPUT=filename_prefix
 
+# Optional WAN values exposed by this workflow
+COMFY_SEED_NODE=129:86
+COMFY_SEED_INPUT=noise_seed
+COMFY_WIDTH_NODE=129:98
+COMFY_WIDTH_INPUT=width
+COMFY_HEIGHT_NODE=129:98
+COMFY_HEIGHT_INPUT=height
+COMFY_FPS_NODE=129:162
+COMFY_FPS_INPUT=value
+COMFY_DURATION_NODE=129:161
+COMFY_DURATION_INPUT=value
+
 # Upscale: no positive or negative prompt nodes are read
 COMFY_UPSCALE_VIDEO_NODE=1
 COMFY_UPSCALE_VIDEO_INPUT=video
 COMFY_UPSCALE_OUTPUT_NODE=4
 COMFY_UPSCALE_OUTPUT_INPUT=filename_prefix
-
-# Optional for the supplied upscale workflow
 COMFY_UPSCALE_WIDTH_NODE=5
 COMFY_UPSCALE_WIDTH_INPUT=width
 COMFY_UPSCALE_HEIGHT_NODE=5
