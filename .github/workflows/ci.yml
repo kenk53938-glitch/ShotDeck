@@ -24,13 +24,18 @@ jobs:
         id: lint
         continue-on-error: true
         run: npm run lint > lint-output.txt 2>&1
-      - name: Publish lint diagnostics
+      - name: Upload lint diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-diagnostics
+          path: lint-output.txt
+          if-no-files-found: error
+          retention-days: 3
+      - name: Fail on lint errors
         if: steps.lint.outcome == 'failure'
         run: |
-          echo '### ESLint output' >> "$GITHUB_STEP_SUMMARY"
-          echo '```text' >> "$GITHUB_STEP_SUMMARY"
-          cat lint-output.txt | tee -a "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat lint-output.txt
           exit 1
       - run: npm run typecheck
       - run: npm run build
