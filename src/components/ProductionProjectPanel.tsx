@@ -1,20 +1,60 @@
 "use client";
-import { useState, useTransition } from "react";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { buttonPrimary, buttonSecondary, cardPadded, fieldBase, fieldLabel, sectionLabel } from "@/lib/styles";
+import { useRouter } from "next/navigation";
+import { buttonPrimary, buttonSecondary, card, cardPadded, sectionLabel } from "@/lib/styles";
 
-type Shot = { id: string; order: number; title: string | null; status: string; sourceImagePath: string | null; stillPrompt: string | null; motionPrompt: string | null; previewVideoPath: string | null; finalVideoPath: string | null; jobs: { status: string; type: string; errorMessage: string | null }[] };
+type Job = { id: string; type: string; status: string; progress: number; errorMessage: string | null; outputPath: string | null; createdAt: string };
+type Shot = { id: string; order: number; title: string | null; status: string; sourceImagePath: string | null; motionPrompt: string | null; previewVideoPath: string | null; finalVideoPath: string | null; jobs: Job[] };
 
-export function ProductionProjectPanel({ project }: { project: any }) {
+export function ProductionProjectPanel({ project }: { project: { id: string; title: string; shots: Shot[] } }) {
+  const router = useRouter();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-  async function run(action: string, payload: Record<string, unknown> = {}) {
-    setMessage(null);
-    const response = await fetch(`/api/projects/${project.id}/production`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...payload }) });
-    const data = await response.json();
-    if (!response.ok || !data.success) throw new Error(data.error ?? "Request failed");
-    const failed = Array.isArray(data.results) ? data.results.filter((r: any) => !r.ok).length : 0;
-    setMessage(failed ? `Completed with ${failed} failed shot(s). Refresh for details.` : "Completed. Refresh to see the latest status.");
+  const [error, setError] = useState<string | null>(null);
+  const activeJobs = useMemo(() => project.shots.flatMap((shot) => shot.jobs).filter((job) => ["QUEUED", "RUNNING"].includes(job.status)), [project.shots]);
+
+  async function run(action: string, extra: Record<string, unknown> = {}) {
+    setBusy(action); setMessage(null); setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/production`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, ...extra }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error ?? "Action failed.");
+      const failures = Array.isArray(data.results) ? data.results.filter((item: { ok: boolean }) => !item.ok) : [];
+      if (failures.length) setError(`${failures.length} job(s) failed:\n${failures.map((item: { error?: string }) => item.error ?? "Unknown error").join("\n")}`);
+      else setMessage(action === "poll-jobs" ? "Render status refreshed." : "Action completed.");
+      router.refresh();
+      return data;
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Action failed."); throw caught; }
+    finally { setBusy(null); }
   }
-  return <div className="flex flex-col gap-8"><section className={cardPadded}><h2 className={`mb-4 ${sectionLabel}`}>Project production settings</h2><form onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); startTransition(() => run("save-settings", Object.fromEntries(form)).catch((e) => setMessage(e.message))); }} className="flex flex-col gap-4"><label className={fieldLabel}>Style guide<textarea name="styleGuide" rows={5} defaultValue={project.styleGuide ?? ""} className={`${fieldBase} mt-1.5`} /></label><label className={fieldLabel}>Reference image path / note<input name="referenceImagePath" defaultValue={project.referenceImagePath ?? ""} className={`${fieldBase} mt-1.5`} /></label><label className={fieldLabel}>Fixed negative prompt<textarea name="fixedNegativePrompt" rows={3} defaultValue={project.fixedNegativePrompt ?? ""} className={`${fieldBase} mt-1.5`} /></label><div className="grid grid-cols-3 gap-3"><label className={fieldLabel}>Width<input name="defaultWidth" type="number" defaultValue={project.defaultWidth} className={`${fieldBase} mt-1.5`} /></label><label className={fieldLabel}>Height<input name="defaultHeight" type="number" defaultValue={project.defaultHeight} className={`${fieldBase} mt-1.5`} /></label><label className={fieldLabel}>FPS<input name="defaultFps" type="number" defaultValue={project.defaultFps} className={`${fieldBase} mt-1.5`} /></label></div><button disabled={pending} className={`w-fit ${buttonPrimary}`}>{pending ? "Saving…" : "Save settings"}</button></form></section><section className={cardPadded}><h2 className={`mb-4 ${sectionLabel}`}>Batch actions</h2><div className="flex flex-wrap gap-2"><button disabled={pending} onClick={() => startTransition(() => run("generate-prompts").catch((e) => setMessage(e.message)))} className={buttonPrimary}>Generate prompts for all shots</button><a href={`/api/projects/${project.id}/export`} className={buttonSecondary}>Export approved CSV</a><button disabled={pending} onClick={() => startTransition(() => run("queue-animation").catch((e) => setMessage(e.message)))} className={buttonSecondary}>Queue approved animation</button><button disabled={pending} onClick={() => startTransition(() => run("queue-upscale").catch((e) => setMessage(e.message)))} className={buttonSecondary}>Queue approved upscale</button></div>{message && <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{message}</p>}</section><section className="flex flex-col gap-3"><h2 className={sectionLabel}>Shot readiness</h2><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{project.shots.map((shot: Shot) => { const latest = shot.jobs[0]; return <div key={shot.id} className={cardPadded}><div className="flex items-start justify-between gap-3"><div><div className="font-medium text-zinc-900 dark:text-zinc-50">{String(shot.order).padStart(2, "0")} · {shot.title ?? "Untitled"}</div><div className="text-xs text-zinc-500">{shot.status}</div></div><Link href={`/projects/${project.id}/shots/${shot.id}`} className="text-xs text-indigo-600">Open</Link></div><div className="mt-3 space-y-1 text-xs text-zinc-500"><div>Still prompt: {shot.stillPrompt ? "✓" : "—"}</div><div>Motion prompt: {shot.motionPrompt ? "✓" : "—"}</div><div>Image: {shot.sourceImagePath ? "✓" : "—"}</div><div>Preview: {shot.previewVideoPath ? "✓" : "—"}</div><div>Final: {shot.finalVideoPath ? "✓" : "—"}</div>{latest && <div>Latest job: {latest.type} / {latest.status}</div>}{latest?.errorMessage && <div className="text-red-600">{latest.errorMessage}</div>}</div></div>; })}</div></section></div>;
+
+  useEffect(() => {
+    if (activeJobs.length === 0) return;
+    const timer = window.setInterval(() => { void run("poll-jobs").catch(() => undefined); }, 5000);
+    return () => window.clearInterval(timer);
+  }, [activeJobs.length]);
+
+  async function createExport() {
+    setBusy("export"); setMessage(null); setError(null);
+    try {
+      const response = await fetch(`/api/projects/${project.id}/final-export`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error ?? "Export failed.");
+      setMessage(`Exported ${data.exportedShots} approved shot(s) to ${data.exportPath}${data.warnings.length ? ` · ${data.warnings.length} warning(s)` : ""}.`);
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Export failed."); }
+    finally { setBusy(null); }
+  }
+
+  const selectedIds = [...selected];
+  const allSelected = project.shots.length > 0 && selected.size === project.shots.length;
+  function toggle(id: string) { setSelected((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; }); }
+
+  return <div className="flex flex-col gap-8">
+    <section className={cardPadded}><div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className={sectionLabel}>Batch controls</h2><p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">ComfyUI queues jobs sequentially. Generate 768×432 previews first, approve them, then upscale approved clips to 1920×1080.</p></div><Link href={`/projects/${project.id}/review`} className={buttonSecondary}>Still review</Link></div><div className="mt-4 flex flex-wrap gap-2"><button disabled={busy !== null} onClick={() => run("queue-animation", { shotIds: selectedIds }).catch(() => undefined)} className={buttonPrimary}>{busy === "queue-animation" ? "Queueing…" : `Queue animation${selectedIds.length ? ` (${selectedIds.length})` : ""}`}</button><button disabled={busy !== null} onClick={() => run("queue-upscale", { shotIds: selectedIds }).catch(() => undefined)} className={buttonSecondary}>{busy === "queue-upscale" ? "Queueing…" : `Queue upscale${selectedIds.length ? ` (${selectedIds.length})` : ""}`}</button><button disabled={busy !== null || activeJobs.length === 0} onClick={() => run("poll-jobs").catch(() => undefined)} className={buttonSecondary}>{busy === "poll-jobs" ? "Checking…" : `Refresh renders (${activeJobs.length})`}</button><a href={`/api/projects/${project.id}/export`} className={buttonSecondary}>Export animation CSV</a><button disabled={busy !== null} onClick={createExport} className={buttonSecondary}>{busy === "export" ? "Exporting…" : "Organize approved assets"}</button></div>{message && <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-400">{message}</p>}{error && <pre className="mt-4 whitespace-pre-wrap rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</pre>}</section>
+
+    <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><h2 className={sectionLabel}>Shot render queue</h2><p className="mt-1 text-sm text-zinc-500">{project.shots.length} shots · {activeJobs.length} active jobs</p></div><label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(project.shots.map((shot) => shot.id)))} /> Select all</label></div>{project.shots.length === 0 ? <div className={cardPadded}><p className="text-sm text-zinc-500">No shots yet. Import a script from the project page first.</p></div> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{project.shots.map((shot) => { const latest = shot.jobs[0]; const canAnimate = shot.status === "APPROVED" && Boolean(shot.sourceImagePath && shot.motionPrompt); const canUpscale = shot.status === "APPROVED" && Boolean(shot.previewVideoPath); return <article key={shot.id} className={`${card} p-4`}><div className="flex items-start justify-between gap-3"><label className="flex min-w-0 items-start gap-3"><input type="checkbox" className="mt-1" checked={selected.has(shot.id)} onChange={() => toggle(shot.id)} /><span><span className="block truncate font-medium text-zinc-900 dark:text-zinc-50">{String(shot.order).padStart(2, "0")} · {shot.title ?? "Untitled"}</span><span className="text-xs text-zinc-500">{shot.status.replaceAll("_", " ")}</span></span></label><Link href={`/projects/${project.id}/shots/${shot.id}`} className="text-xs text-indigo-600 hover:underline">Open</Link></div><div className="mt-4 grid grid-cols-3 gap-2 text-center text-[11px]"><div className={`rounded-lg p-2 ${shot.sourceImagePath ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950" : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800"}`}>Still<br />{shot.sourceImagePath ? "Ready" : "Missing"}</div><div className={`rounded-lg p-2 ${shot.previewVideoPath ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950" : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800"}`}>Preview<br />{shot.previewVideoPath ? "Ready" : "Missing"}</div><div className={`rounded-lg p-2 ${shot.finalVideoPath ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950" : "bg-zinc-100 text-zinc-400 dark:bg-zinc-800"}`}>1080p<br />{shot.finalVideoPath ? "Ready" : "Missing"}</div></div>{latest && <div className="mt-3 rounded-lg border border-zinc-200 p-3 text-xs dark:border-zinc-800"><div className="flex justify-between"><span>{latest.type.replaceAll("_", " ")}</span><span>{latest.status}</span></div>{["QUEUED", "RUNNING"].includes(latest.status) && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"><div className="h-full bg-indigo-600" style={{ width: `${latest.progress}%` }} /></div>}{latest.errorMessage && <p className="mt-2 text-red-600 dark:text-red-400">{latest.errorMessage}</p>}{latest.status === "FAILED" && <button type="button" disabled={busy !== null} onClick={() => run("retry-job", { jobId: latest.id }).catch(() => undefined)} className="mt-2 text-indigo-600 hover:underline">Retry failed job</button>}</div>}<div className="mt-3 flex flex-wrap gap-2">{shot.status === "REVIEW" && shot.previewVideoPath && <button type="button" disabled={busy !== null} onClick={() => run("approve-preview", { shotId: shot.id }).catch(() => undefined)} className={buttonPrimary}>Approve preview</button>}<span className={`rounded-md px-2 py-1 text-[10px] ${canAnimate ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{canAnimate ? "Animation ready" : "Animation blocked"}</span><span className={`rounded-md px-2 py-1 text-[10px] ${canUpscale ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}>{canUpscale ? "Upscale ready" : "Upscale blocked"}</span></div></article>; })}</div>}</section>
+  </div>;
 }

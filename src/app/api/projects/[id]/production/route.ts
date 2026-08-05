@@ -8,18 +8,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const action = String(body.action ?? "");
   try {
     if (action === "save-settings") {
-      await prisma.project.update({
-        where: { id },
-        data: {
-          styleGuide: String(body.styleGuide ?? "").trim() || null,
-          fixedNegativePrompt: String(body.fixedNegativePrompt ?? "").trim() || null,
-          defaultWidth: Math.max(64, Number(body.defaultWidth) || 768),
-          defaultHeight: Math.max(64, Number(body.defaultHeight) || 432),
-          defaultFps: Math.max(1, Number(body.defaultFps) || 24),
-          ...(body.referenceImageUrl !== undefined ? { referenceImageUrl: String(body.referenceImageUrl).trim() || null } : {}),
-          ...(body.referenceImagePath !== undefined ? { referenceImagePath: String(body.referenceImagePath).trim() || null } : {}),
-        },
-      });
+      await prisma.project.update({ where: { id }, data: { styleGuide: String(body.styleGuide ?? "").trim() || null, fixedNegativePrompt: String(body.fixedNegativePrompt ?? "").trim() || null, defaultWidth: Math.max(64, Number(body.defaultWidth) || 768), defaultHeight: Math.max(64, Number(body.defaultHeight) || 432), defaultFps: Math.max(1, Number(body.defaultFps) || 24), ...(body.referenceImageUrl !== undefined ? { referenceImageUrl: String(body.referenceImageUrl).trim() || null } : {}), ...(body.referenceImagePath !== undefined ? { referenceImagePath: String(body.referenceImagePath).trim() || null } : {}) } });
       return NextResponse.json({ success: true });
     }
     if (action === "generate-prompts") {
@@ -42,9 +31,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
       return NextResponse.json({ success: true, results });
     }
+    if (action === "retry-job") {
+      const jobId = String(body.jobId ?? "");
+      const job = await prisma.generationJob.findFirst({ where: { id: jobId, shot: { projectId: id } } });
+      if (!job) return NextResponse.json({ success: false, error: "Job not found in this project." }, { status: 404 });
+      const queued = await queueShotInComfy(job.shotId, job.type);
+      return NextResponse.json({ success: true, queued });
+    }
+    if (action === "approve-preview") {
+      const shotId = String(body.shotId ?? "");
+      const shot = await prisma.shot.findFirst({ where: { id: shotId, projectId: id } });
+      if (!shot?.previewVideoPath) return NextResponse.json({ success: false, error: "This shot has no preview clip to approve." }, { status: 409 });
+      const previewTake = await prisma.take.findFirst({ where: { shotId, mediaKind: "PREVIEW", status: { in: ["READY", "SELECTED"] } }, orderBy: { versionNumber: "desc" } });
+      await prisma.$transaction([
+        prisma.take.updateMany({ where: { shotId, isSelected: true }, data: { isSelected: false, status: "READY" } }),
+        ...(previewTake ? [prisma.take.update({ where: { id: previewTake.id }, data: { isSelected: true, status: "SELECTED" } })] : []),
+        prisma.shot.update({ where: { id: shotId }, data: { status: "APPROVED", videoUrl: shot.previewVideoPath } }),
+      ]);
+      return NextResponse.json({ success: true });
+    }
     if (action === "queue-animation" || action === "queue-upscale") {
       const type = action === "queue-upscale" ? "UPSCALE" : "IMAGE_TO_VIDEO";
-      const shots = await prisma.shot.findMany({ where: type === "UPSCALE" ? { projectId: id, status: "APPROVED", previewVideoPath: { not: null } } : { projectId: id, status: "APPROVED", sourceImagePath: { not: null }, motionPrompt: { not: null } }, orderBy: { order: "asc" } });
+      const requestedIds = Array.isArray(body.shotIds) ? body.shotIds.map(String) : [];
+      const shots = await prisma.shot.findMany({ where: { ...(type === "UPSCALE" ? { projectId: id, status: "APPROVED", previewVideoPath: { not: null } } : { projectId: id, status: "APPROVED", sourceImagePath: { not: null }, motionPrompt: { not: null } }), ...(requestedIds.length ? { id: { in: requestedIds } } : {}) }, orderBy: { order: "asc" } });
       const results = [];
       for (const shot of shots) {
         try { const queued = await queueShotInComfy(shot.id, type); results.push({ shotId: shot.id, ok: true, ...queued }); }
