@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { buttonPrimary, buttonSecondary, card, cardPadded, sectionLabel } from "@/lib/styles";
 
 type Take = { id: string; versionNumber: number; fileUrl: string | null; localPath: string | null; originalFileName: string | null; status: string; isSelected: boolean; createdAt: string };
@@ -12,6 +13,7 @@ type FolderInputAttributes = { webkitdirectory: string; directory: string };
 const folderInputAttributes: FolderInputAttributes = { webkitdirectory: "", directory: "" };
 
 export function ReviewBoard({ projectId, shots }: { projectId: string; shots: Shot[] }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -38,6 +40,7 @@ export function ReviewBoard({ projectId, shots }: { projectId: string; shots: Sh
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error ?? "Upload failed.");
       setReport(data.report); setMessage(`Processed ${uploadCount} image(s). Review the matching report below.`); setFiles([]); if (inputRef.current) inputRef.current.value = ""; if (folderInputRef.current) folderInputRef.current.value = "";
+      router.refresh();
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Upload failed."); }
     finally { setBusy(null); }
   }
@@ -49,18 +52,21 @@ export function ReviewBoard({ projectId, shots }: { projectId: string; shots: Sh
       const response = await fetch(`/api/projects/${projectId}/review`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, shotIds: [...selected] }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error ?? "Review update failed.");
-      setMessage(`${data.updated} shot(s) marked ${action === "approve" ? "Approved" : "Needs Rework"}.`); setSelected(new Set()); window.location.reload();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Review update failed."); setBusy(null); }
+      setMessage(`${data.updated} shot(s) marked ${action === "approve" ? "Approved" : "Needs Rework"}.`); setSelected(new Set()); router.refresh();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Review update failed."); }
+    finally { setBusy(null); }
   }
 
   async function selectTake(takeId: string, shotId: string) {
-    setBusy(`take:${takeId}`); setError(null);
+    setBusy(`take:${takeId}`); setError(null); setMessage(null);
     try {
       const response = await fetch(`/api/takes/${takeId}/select`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ shotId }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.error ?? "Could not select this take.");
-      window.location.reload();
-    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not select this take."); setBusy(null); }
+      setMessage("Take selected. The previous selected Take for this shot was cleared.");
+      router.refresh();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Could not select this take."); }
+    finally { setBusy(null); }
   }
 
   return <div className="flex flex-col gap-8">
