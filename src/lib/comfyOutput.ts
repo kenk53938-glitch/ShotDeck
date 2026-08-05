@@ -83,8 +83,8 @@ export async function materializeCompletedJob(jobId: string) {
         error instanceof Error ? error.message : "unknown filesystem error"
       }`;
     }
-  } else if (isAbsolute(outputPath)) {
-    warning = "The render completed, but COMFY_OUTPUT_DIRECTORY is not configured, so the absolute ComfyUI output cannot be copied into the final project export.";
+  } else {
+    warning = "The render completed and can be opened through ComfyUI, but COMFY_OUTPUT_DIRECTORY is not configured, so ShotDeck cannot include the file in the organized project export.";
   }
 
   const mediaKind = job.type === "UPSCALE" ? "FINAL" : "PREVIEW";
