@@ -85,7 +85,7 @@ ShotDeck binds to localhost only. It has no authentication and must not be expos
 4. Generate or manually edit still-image prompts.
 5. Generate the still images manually in ChatGPT.
 6. Open **Review images**, upload all stills together, inspect matching, and approve selected shots.
-7. Add each approved shot's motion prompt.
+7. Confirm each approved shot has both positive and negative prompts; keep the separate motion prompt populated for CSV export.
 8. Open **Production**, queue WAN previews, and leave ShotDeck open to poll render status.
 9. Approve good previews and queue the approved set for upscale.
 10. Use **Organize approved assets** before moving to CapCut.
@@ -98,7 +98,7 @@ Keys are stored server-side in the local SQLite database, displayed masked, neve
 
 ## ComfyUI integration
 
-Export working workflows from ComfyUI using **File → Export (API)** and configure the node IDs in `.env`.
+Export working workflows from ComfyUI using **File → Export (API)** and configure separate WAN positive/negative prompt nodes plus prompt-free upscale input/output nodes in `.env`. Colon-containing subgraph IDs such as `129:93` are supported.
 
 See [`docs/comfy-batch.md`](./docs/comfy-batch.md).
 
@@ -122,7 +122,8 @@ A GitHub Actions workflow runs these checks on pushes and pull requests.
 
 The following depend on the creator's local files or hardware and must be verified on the target Windows machine:
 
-- The exact WAN workflow node IDs
+- The exact WAN workflow node IDs, including colon-containing subgraph IDs
+- Separate positive and negative prompt injection into the exported WAN workflow
 - ComfyUI `/history/{prompt_id}` output shape for the installed custom nodes
 - Absolute output paths produced by the creator's ComfyUI installation
 - End-to-end 768×432 preview and 1920×1080 upscale rendering on the RTX 5060 8 GB setup
