@@ -98,7 +98,9 @@ Keys are stored server-side in the local SQLite database, displayed masked, neve
 
 ## ComfyUI integration
 
-Export working workflows from ComfyUI using **File → Export (API)** and configure separate WAN positive/negative prompt nodes plus prompt-free upscale input/output nodes in `.env`. Colon-containing subgraph IDs such as `129:93` are supported.
+Export working workflows from ComfyUI using **File → Export (API)** and configure separate WAN positive/negative prompt nodes plus prompt-free upscale input/output nodes in `.env`. Colon-containing subgraph IDs such as `129:93` are supported as literal JSON keys.
+
+The documented WAN mapping is image `97`, positive `129:93`, negative `129:89`, and output `108`. The documented upscaler uses video input `1`, output `4`, and scale node `5`; it does not require text-prompt nodes.
 
 See [`docs/comfy-batch.md`](./docs/comfy-batch.md).
 
