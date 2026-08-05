@@ -38,17 +38,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const queued = await queueShotInComfy(job.shotId, job.type);
       return NextResponse.json({ success: true, queued });
     }
-    if (action === "approve-preview") {
+    if (action === "approve-preview" || action === "approve-final") {
       const shotId = String(body.shotId ?? "");
+      const mediaKind = action === "approve-final" ? "FINAL" : "PREVIEW";
       const shot = await prisma.shot.findFirst({ where: { id: shotId, projectId: id } });
-      if (!shot?.previewVideoPath) return NextResponse.json({ success: false, error: "This shot has no preview clip to approve." }, { status: 409 });
-      const previewTake = await prisma.take.findFirst({ where: { shotId, mediaKind: "PREVIEW", status: { in: ["READY", "SELECTED"] } }, orderBy: { versionNumber: "desc" } });
+      const assetPath = mediaKind === "FINAL" ? shot?.finalVideoPath : shot?.previewVideoPath;
+      if (!shot || !assetPath) {
+        return NextResponse.json({ success: false, error: `This shot has no ${mediaKind === "FINAL" ? "final 1080p" : "preview"} clip to approve.` }, { status: 409 });
+      }
+      const take = await prisma.take.findFirst({ where: { shotId, mediaKind, status: { in: ["READY", "SELECTED"] } }, orderBy: { versionNumber: "desc" } });
+      if (!take) {
+        return NextResponse.json({ success: false, error: `No ready ${mediaKind.toLowerCase()} Take was found for this shot.` }, { status: 409 });
+      }
       await prisma.$transaction([
-        prisma.take.updateMany({ where: { shotId, isSelected: true }, data: { isSelected: false, status: "READY" } }),
-        ...(previewTake ? [prisma.take.update({ where: { id: previewTake.id }, data: { isSelected: true, status: "SELECTED" } })] : []),
-        prisma.shot.update({ where: { id: shotId }, data: { status: "APPROVED", videoUrl: shot.previewVideoPath } }),
+        prisma.take.updateMany({ where: { shotId, id: { not: take.id }, isSelected: true }, data: { isSelected: false, status: "READY" } }),
+        prisma.take.update({ where: { id: take.id }, data: { isSelected: true, status: "SELECTED" } }),
+        prisma.shot.update({ where: { id: shotId }, data: { status: "APPROVED", videoUrl: take.fileUrl ?? assetPath } }),
       ]);
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, approved: mediaKind });
     }
     if (action === "queue-animation" || action === "queue-upscale") {
       const type = action === "queue-upscale" ? "UPSCALE" : "IMAGE_TO_VIDEO";
