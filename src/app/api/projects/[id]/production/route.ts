@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { materializeCompletedJob } from "@/lib/comfyOutput";
 import { generateImagePromptsForShot, pollGenerationJob, queueShotInComfy } from "@/lib/production";
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -26,8 +27,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const jobs = await prisma.generationJob.findMany({ where: { shot: { projectId: id }, status: { in: ["QUEUED", "RUNNING"] } }, orderBy: { createdAt: "asc" } });
       const results = [];
       for (const job of jobs) {
-        try { const updated = await pollGenerationJob(job.id); results.push({ jobId: job.id, ok: true, status: updated?.status }); }
-        catch (error) { results.push({ jobId: job.id, ok: false, error: error instanceof Error ? error.message : "Polling failed" }); }
+        try {
+          const updated = await pollGenerationJob(job.id);
+          const materialized = updated?.status === "COMPLETED"
+            ? await materializeCompletedJob(job.id)
+            : { warning: null };
+          results.push({ jobId: job.id, ok: true, status: updated?.status, warning: materialized.warning });
+        } catch (error) {
+          results.push({ jobId: job.id, ok: false, error: error instanceof Error ? error.message : "Polling failed" });
+        }
       }
       return NextResponse.json({ success: true, results });
     }

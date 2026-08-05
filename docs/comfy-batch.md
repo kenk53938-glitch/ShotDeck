@@ -23,6 +23,7 @@ Configure `.env`:
 COMFY_URL=http://127.0.0.1:8188
 COMFY_I2V_WORKFLOW_PATH=C:\\ComfyUI\\workflows\\wan_i2v_api.json
 COMFY_UPSCALE_WORKFLOW_PATH=C:\\ComfyUI\\workflows\\upscale_api.json
+COMFY_OUTPUT_DIRECTORY=C:\\ComfyUI\\output
 
 COMFY_IMAGE_NODE=12
 COMFY_IMAGE_INPUT=image
@@ -46,6 +47,10 @@ COMFY_DURATION_INPUT=duration
 
 Node IDs are workflow-specific. ShotDeck fails with a visible error when a required node or workflow is missing.
 
+The image/video loader in the exported workflow must accept the absolute input path that ShotDeck injects. If the installed loader only accepts filenames from ComfyUI's input folder, replace it with a path-capable loader or adapt the workflow before queueing.
+
+`COMFY_OUTPUT_DIRECTORY` should point to the actual ComfyUI output directory. ShotDeck uses it to copy completed renders into its own `storage/` folder. Without it, the render is still attached through ComfyUI's `/view` endpoint, but the final organized export cannot copy that file and will report a warning.
+
 ## Status polling
 
 ShotDeck submits to:
@@ -60,7 +65,7 @@ The Production dashboard polls:
 GET http://127.0.0.1:8188/history/{prompt_id}
 ```
 
-Completed output is attached as a new PREVIEW or FINAL Take. Execution messages containing errors, exceptions, CUDA failures, or out-of-memory details are shown on the job card.
+Completed output is attached as a new PREVIEW or FINAL Take. Execution messages containing errors, exceptions, CUDA failures, or out-of-memory details are shown on the job card. Completed files are copied into ShotDeck storage when `COMFY_OUTPUT_DIRECTORY` is configured.
 
 ## CSV fallback
 
@@ -101,3 +106,4 @@ The fallback script is intentionally simple. Update its node IDs to match the ex
 
 - Inspect the `/history/{prompt_id}` response.
 - Confirm the installed output node reports a `videos`, `gifs`, or `images` collection with a filename.
+- Confirm `COMFY_OUTPUT_DIRECTORY` points to the directory that contains the returned relative path.
