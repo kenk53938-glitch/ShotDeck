@@ -59,9 +59,9 @@ export default async function SettingsPage() {
             ShotDeck is a local-only app with no user accounts, so the key
             is stored as plain text in your local SQLite database (
             <span className="font-mono">dev.db</span>) rather than
-            encrypted — there's no separate secret store to encrypt it
-            with. It's never sent anywhere except in requests to your
-            chosen provider's API from your own machine.
+            encrypted — there&apos;s no separate secret store to encrypt it
+            with. It&apos;s never sent anywhere except in requests to your
+            chosen provider&apos;s API from your own machine.
           </p>
         </div>
 
