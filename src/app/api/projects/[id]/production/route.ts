@@ -66,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (action === "queue-animation" || action === "queue-upscale") {
       const type = action === "queue-upscale" ? "UPSCALE" : "IMAGE_TO_VIDEO";
       const requestedIds = Array.isArray(body.shotIds) ? body.shotIds.map(String) : [];
-      const shots = await prisma.shot.findMany({ where: { ...(type === "UPSCALE" ? { projectId: id, status: "APPROVED", previewVideoPath: { not: null } } : { projectId: id, status: "APPROVED", sourceImagePath: { not: null }, motionPrompt: { not: null } }), ...(requestedIds.length ? { id: { in: requestedIds } } : {}) }, orderBy: { order: "asc" } });
+      const shots = await prisma.shot.findMany({ where: { ...(type === "UPSCALE" ? { projectId: id, status: "APPROVED", previewVideoPath: { not: null } } : { projectId: id, status: "APPROVED", sourceImagePath: { not: null }, positivePrompt: { not: null }, negativePrompt: { not: null } }), ...(requestedIds.length ? { id: { in: requestedIds } } : {}) }, orderBy: { order: "asc" } });
       const results = [];
       for (const shot of shots) {
         const active = await prisma.generationJob.findFirst({ where: { shotId: shot.id, type, status: { in: ["QUEUED", "RUNNING"] } } });

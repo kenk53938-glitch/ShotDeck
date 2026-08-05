@@ -337,8 +337,11 @@ export async function queueShotInComfy(
   if (!inputPath) {
     throw new Error(type === "UPSCALE" ? "No approved preview clip is attached." : "No selected source image is attached.");
   }
-  if (type === "IMAGE_TO_VIDEO" && !shot.motionPrompt?.trim()) {
-    throw new Error("No motion prompt is set for this shot.");
+  if (type === "IMAGE_TO_VIDEO" && !shot.positivePrompt?.trim()) {
+    throw new Error("No positive prompt is set for this shot.");
+  }
+  if (type === "IMAGE_TO_VIDEO" && !shot.negativePrompt?.trim()) {
+    throw new Error("No negative prompt is set for this shot.");
   }
 
   let workflow: Workflow;
@@ -348,24 +351,43 @@ export async function queueShotInComfy(
     throw new Error(`Could not read the configured ComfyUI workflow: ${safeErrorMessage(error)}`);
   }
 
-  const imageNode = process.env.COMFY_IMAGE_NODE;
-  const promptNode = process.env.COMFY_PROMPT_NODE;
-  const outputNode = process.env.COMFY_OUTPUT_NODE;
-  if (!imageNode || !outputNode || (type === "IMAGE_TO_VIDEO" && !promptNode)) {
-    throw new Error("ComfyUI node mapping is incomplete. Configure image, prompt, and output node IDs in .env.");
-  }
+  const prefix = `${type === "UPSCALE" ? "final" : "preview"}/${sanitizedShotId(shot)}`;
 
-  setNodeInput(workflow, imageNode, process.env.COMFY_IMAGE_INPUT ?? "image", inputPath);
-  if (promptNode) {
-    setNodeInput(
-      workflow,
-      promptNode,
-      process.env.COMFY_PROMPT_INPUT ?? "text",
-      type === "UPSCALE"
-        ? "Upscale to 1920x1080 while preserving frame order, composition, and 24 fps."
-        : shot.motionPrompt,
+if (type === "IMAGE_TO_VIDEO") {
+  const imageNode = process.env.COMFY_IMAGE_NODE;
+  const positivePromptNode =
+    process.env.COMFY_POSITIVE_PROMPT_NODE ?? process.env.COMFY_PROMPT_NODE;
+  const negativePromptNode = process.env.COMFY_NEGATIVE_PROMPT_NODE;
+  const outputNode = process.env.COMFY_OUTPUT_NODE;
+
+  if (!imageNode || !positivePromptNode || !negativePromptNode || !outputNode) {
+    throw new Error(
+      "ComfyUI I2V node mapping is incomplete. Configure COMFY_IMAGE_NODE, COMFY_POSITIVE_PROMPT_NODE, COMFY_NEGATIVE_PROMPT_NODE, and COMFY_OUTPUT_NODE in .env.",
     );
   }
+
+  // ComfyUI subgraph IDs such as "129:93" are JSON object keys. Keep them
+  // as strings and address them directly instead of parsing them as integers.
+  setNodeInput(
+    workflow,
+    imageNode,
+    process.env.COMFY_IMAGE_INPUT ?? "image",
+    inputPath,
+  );
+  setNodeInput(
+    workflow,
+    positivePromptNode,
+    process.env.COMFY_POSITIVE_PROMPT_INPUT ??
+      process.env.COMFY_PROMPT_INPUT ??
+      "text",
+    shot.positivePrompt.trim(),
+  );
+  setNodeInput(
+    workflow,
+    negativePromptNode,
+    process.env.COMFY_NEGATIVE_PROMPT_INPUT ?? "text",
+    shot.negativePrompt.trim(),
+  );
   setOptionalNodeInput(
     workflow,
     process.env.COMFY_SEED_NODE,
@@ -376,13 +398,13 @@ export async function queueShotInComfy(
     workflow,
     process.env.COMFY_WIDTH_NODE,
     process.env.COMFY_WIDTH_INPUT ?? "width",
-    type === "UPSCALE" ? 1920 : shot.width ?? shot.project.defaultWidth,
+    shot.width ?? shot.project.defaultWidth,
   );
   setOptionalNodeInput(
     workflow,
     process.env.COMFY_HEIGHT_NODE,
     process.env.COMFY_HEIGHT_INPUT ?? "height",
-    type === "UPSCALE" ? 1080 : shot.height ?? shot.project.defaultHeight,
+    shot.height ?? shot.project.defaultHeight,
   );
   setOptionalNodeInput(
     workflow,
@@ -396,9 +418,63 @@ export async function queueShotInComfy(
     process.env.COMFY_DURATION_INPUT ?? "duration",
     shot.durationSeconds ?? 3,
   );
+  setNodeInput(
+    workflow,
+    outputNode,
+    process.env.COMFY_OUTPUT_INPUT ?? "filename_prefix",
+    prefix,
+  );
+} else {
+  const legacyVideoNode = process.env.COMFY_IMAGE_NODE;
+  const legacyOutputNode = process.env.COMFY_OUTPUT_NODE;
+  const videoNode =
+    process.env.COMFY_UPSCALE_VIDEO_NODE ??
+    (legacyVideoNode && workflow[legacyVideoNode]
+      ? legacyVideoNode
+      : undefined);
+  const outputNode =
+    process.env.COMFY_UPSCALE_OUTPUT_NODE ??
+    (legacyOutputNode && workflow[legacyOutputNode]
+      ? legacyOutputNode
+      : undefined);
 
-  const prefix = `${type === "UPSCALE" ? "final" : "preview"}/${sanitizedShotId(shot)}`;
-  setNodeInput(workflow, outputNode, process.env.COMFY_OUTPUT_INPUT ?? "filename_prefix", prefix);
+  if (!videoNode || !outputNode) {
+    throw new Error(
+      "ComfyUI upscale node mapping is incomplete. Configure COMFY_UPSCALE_VIDEO_NODE and COMFY_UPSCALE_OUTPUT_NODE in .env.",
+    );
+  }
+
+  setNodeInput(
+    workflow,
+    videoNode,
+    process.env.COMFY_UPSCALE_VIDEO_INPUT ?? "video",
+    inputPath,
+  );
+  setOptionalNodeInput(
+    workflow,
+    process.env.COMFY_UPSCALE_WIDTH_NODE,
+    process.env.COMFY_UPSCALE_WIDTH_INPUT ?? "width",
+    1920,
+  );
+  setOptionalNodeInput(
+    workflow,
+    process.env.COMFY_UPSCALE_HEIGHT_NODE,
+    process.env.COMFY_UPSCALE_HEIGHT_INPUT ?? "height",
+    1080,
+  );
+  setOptionalNodeInput(
+    workflow,
+    process.env.COMFY_UPSCALE_FPS_NODE,
+    process.env.COMFY_UPSCALE_FPS_INPUT ?? "frame_rate",
+    shot.fps ?? shot.project.defaultFps,
+  );
+  setNodeInput(
+    workflow,
+    outputNode,
+    process.env.COMFY_UPSCALE_OUTPUT_INPUT ?? "filename_prefix",
+    prefix,
+  );
+}
 
   const response = await fetchComfy("/prompt", {
     method: "POST",
