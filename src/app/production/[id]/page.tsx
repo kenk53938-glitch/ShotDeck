@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { ProductionProjectPanel } from "@/components/ProductionProjectPanel";
 import { linkMuted, pageShellWide } from "@/lib/styles";
 
-export default async function ProductionProjectPage({ params }: PageProps<"/production/[id]">) {
+type ProductionProjectPageProps = { params: Promise<{ id: string }> };
+
+export default async function ProductionProjectPage({ params }: ProductionProjectPageProps) {
   const { id } = await params;
   const project = await prisma.project.findUnique({ where: { id }, include: { shots: { orderBy: { order: "asc" }, include: { jobs: { orderBy: { createdAt: "desc" }, take: 5 } } } } });
   if (!project) notFound();

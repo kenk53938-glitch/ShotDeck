@@ -4,7 +4,9 @@ import { prisma } from "@/lib/prisma";
 import { ReviewBoard } from "@/components/ReviewBoard";
 import { linkMuted, pageShellWide } from "@/lib/styles";
 
-export default async function ProjectReviewPage({ params }: PageProps<"/projects/[id]/review">) {
+type ProjectReviewPageProps = { params: Promise<{ id: string }> };
+
+export default async function ProjectReviewPage({ params }: ProjectReviewPageProps) {
   const { id } = await params;
   const project = await prisma.project.findUnique({
     where: { id },

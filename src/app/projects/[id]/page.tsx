@@ -16,7 +16,9 @@ const COLUMNS: { status: ShotStatus; label: string }[] = [
   { status: "PLANNED", label: "Planned" }, { status: "PROMPTING", label: "Prompting" }, { status: "GENERATING", label: "Generating" }, { status: "REVIEW", label: "Review" }, { status: "NEEDS_REWORK", label: "Needs Rework" }, { status: "APPROVED", label: "Approved" },
 ];
 
-export default async function ProjectBoard({ params }: PageProps<"/projects/[id]">) {
+type ProjectBoardProps = { params: Promise<{ id: string }> };
+
+export default async function ProjectBoard({ params }: ProjectBoardProps) {
   const { id } = await params;
   const project = await prisma.project.findUnique({ where: { id }, include: { shots: { orderBy: { order: "asc" }, include: { _count: { select: { takes: true } } } } } });
   if (!project) notFound();
