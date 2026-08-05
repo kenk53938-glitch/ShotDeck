@@ -109,7 +109,8 @@ async function callPromptProvider(
     throw new Error("No AI provider is configured. Open Settings and add an API base URL, key, and model.");
   }
 
-  const url = `${config.apiBaseUrl.replace(/\/+$/, "")}/chat/completions`;
+  const { apiBaseUrl, apiKey, modelName } = config;
+  const url = `${apiBaseUrl.replace(/\/+$/, "")}/chat/completions`;
   const textMessage = { role: "user", content: instruction };
   const visionMessage = imageUrl
     ? {
@@ -126,10 +127,10 @@ async function callPromptProvider(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: config.modelName,
+        model: modelName,
         messages: [message],
         response_format: { type: "json_object" },
       }),
