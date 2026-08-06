@@ -1,5 +1,6 @@
 import type { ParsedShot, ParseResult } from "@/lib/shotParser";
 import type { AiProviderConfig } from "@/lib/settings";
+import { fetchAiProvider } from "@/lib/aiRequest";
 
 const INSTRUCTIONS =
   "Parse the following shot list into structured shots, preserving the " +
@@ -40,23 +41,23 @@ export async function parseShotListWithAi(
 
   const url = `${apiBaseUrl.replace(/\/+$/, "")}/chat/completions`;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [{ role: "user", content: INSTRUCTIONS + input }],
-      response_format: { type: "json_object" },
+  const res = await fetchAiProvider(
+    url,
+    () => ({
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [{ role: "user", content: INSTRUCTIONS + input }],
+        response_format: { type: "json_object" },
+      }),
+      signal: AbortSignal.timeout(90_000),
     }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`AI provider error ${res.status}: ${body.slice(0, 200)}`);
-  }
+    apiBaseUrl,
+  );
 
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;

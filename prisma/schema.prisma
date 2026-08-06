@@ -138,10 +138,15 @@ model GenerationJob {
   @@index([comfyPromptId])
 }
 
-model AppSettings {
-  id         String   @id
-  apiBaseUrl String?
-  apiKey     String?
-  modelName  String?
+model AiProviderProfile {
+  id         String   @id @default(cuid())
+  name       String
+  apiBaseUrl String
+  apiKey     String
+  modelName  String
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
 }

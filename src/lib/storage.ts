@@ -3,7 +3,11 @@ import { extname, join, relative, resolve, sep } from "node:path";
 
 export const STORAGE_ROOT = resolve(process.cwd(), "storage");
 const MAX_IMAGE_BYTES = 25 * 1024 * 1024;
+const MAX_VIDEO_BYTES = 500 * 1024 * 1024;
 const IMAGE_EXTENSIONS = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif"]);
+const VIDEO_EXTENSIONS = new Set([".mp4", ".webm", ".mov", ".mkv"]);
+
+export type MediaKind = "image" | "video";
 
 export function sanitizeFileName(name: string) {
   const extension = extname(name).toLowerCase();
@@ -34,17 +38,30 @@ export function resolveStoragePath(relativePath: string) {
   return fullPath;
 }
 
-export async function saveImageFile(
+export async function saveMediaFile(
   file: File,
   directoryParts: string[],
   preferredName?: string,
+  kind: MediaKind = "image",
 ) {
-  if (file.size <= 0) throw new Error("The uploaded image is empty.");
-  if (file.size > MAX_IMAGE_BYTES) throw new Error("Images must be 25 MB or smaller.");
+  const maxBytes = kind === "video" ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+  const allowedExtensions = kind === "video" ? VIDEO_EXTENSIONS : IMAGE_EXTENSIONS;
+  const label = kind === "video" ? "video" : "image";
+
+  if (file.size <= 0) throw new Error(`The uploaded ${label} is empty.`);
+  if (file.size > maxBytes) {
+    throw new Error(
+      `${label === "video" ? "Videos" : "Images"} must be ${Math.round(maxBytes / (1024 * 1024))} MB or smaller.`,
+    );
+  }
 
   const safeName = sanitizeFileName(preferredName || file.name);
-  if (!IMAGE_EXTENSIONS.has(extname(safeName).toLowerCase())) {
-    throw new Error("Supported image formats: PNG, JPG, JPEG, WEBP, and GIF.");
+  if (!allowedExtensions.has(extname(safeName).toLowerCase())) {
+    const formats =
+      kind === "video"
+        ? "MP4, WEBM, MOV, and MKV"
+        : "PNG, JPG, JPEG, WEBP, and GIF";
+    throw new Error(`Supported ${label} formats: ${formats}.`);
   }
 
   const directory = resolve(STORAGE_ROOT, ...directoryParts);
@@ -56,6 +73,15 @@ export async function saveImageFile(
   await writeFile(fullPath, Buffer.from(await file.arrayBuffer()));
   const relativePath = relative(process.cwd(), fullPath).replaceAll("\\", "/");
   return { fullPath, relativePath, url: mediaUrl(relativePath), fileName: uniqueName };
+}
+
+/** @deprecated Use saveMediaFile(file, dir, name, "image") — kept for existing callers. */
+export async function saveImageFile(
+  file: File,
+  directoryParts: string[],
+  preferredName?: string,
+) {
+  return saveMediaFile(file, directoryParts, preferredName, "image");
 }
 
 export async function removeStorageFile(relativePath: string | null | undefined) {

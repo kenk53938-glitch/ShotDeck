@@ -2,10 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { createProject } from "@/app/actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { EmptyState } from "@/components/EmptyState";
 import {
   badge,
   buttonPrimary,
   card,
+  cardEnter,
   cardPadded,
   fieldBase,
   fieldLabel,
@@ -34,7 +36,7 @@ export default async function Home() {
           ShotDeck
         </h1>
         <p className="text-zinc-500 dark:text-zinc-400">
-          Shot-level production tracker for AI-generated YouTube videos.
+          <span className="typewriter">Shot-level production tracker for AI-generated YouTube videos.</span>
         </p>
       </header>
 
@@ -76,16 +78,17 @@ export default async function Home() {
       <section className="flex flex-col gap-3">
         <h2 className={sectionLabel}>Projects</h2>
         {projects.length === 0 ? (
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">
-            No projects yet. Create one above to get started.
-          </p>
+          <EmptyState
+            title="No projects yet"
+            description="Create one above to get started."
+          />
         ) : (
           <ul className="flex flex-col gap-3">
             {projects.map((project) => (
               <li key={project.id}>
                 <Link
                   href={`/projects/${project.id}`}
-                  className={`${card} group flex items-center justify-between gap-4 p-4 transition-shadow hover:shadow-md sm:p-5`}
+                  className={`${card} ${cardEnter} group flex items-center justify-between gap-4 p-4 transition-shadow hover:shadow-md sm:p-5`}
                 >
                   <div className="flex flex-col gap-1">
                     <span className="font-medium text-zinc-900 transition-colors group-hover:text-indigo-600 dark:text-zinc-50 dark:group-hover:text-indigo-400">

@@ -18,11 +18,14 @@ export const shotStatusSchema = z.enum([
   "NEEDS_REWORK",
 ]);
 
+// "SELECTED" is intentionally excluded: it's only ever set by the
+// selectTakeById transaction (src/lib/takes.ts), never by directly
+// posting a status value, so a selected take can't drift out of sync
+// with Take.isSelected.
 export const takeStatusSchema = z.enum([
   "GENERATING",
   "READY",
   "REJECTED",
-  "SELECTED",
 ]);
 
 export const MAX_TITLE_LENGTH = 200;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sanitizedShotId } from "@/lib/production";
 import { saveImageFile } from "@/lib/storage";
+import { selectTakeById } from "@/lib/takes";
 
 function normalizeStem(fileName: string) {
   return fileName
@@ -93,17 +94,16 @@ export async function POST(
           data: {
             shotId: shot.id,
             versionNumber: (lastTake?.versionNumber ?? 0) + 1,
-            status: shouldSelect ? "SELECTED" : "READY",
+            status: "READY",
             fileUrl: saved.url,
             localPath: saved.fullPath,
             originalFileName: file.name,
             mediaKind: "STILL",
             model: "Manual image upload",
-            isSelected: shouldSelect,
           },
         });
         if (shouldSelect) {
-          await prisma.shot.update({ where: { id: shot.id }, data: { sourceImagePath: saved.fullPath, status: "REVIEW" } });
+          await selectTakeById(take.id, shot.id);
           shouldSelect = false;
         }
         report.matched.push({ fileName: file.name, shotId: shot.id, shotOrder: shot.order, shotTitle: shot.title, takeId: take.id });

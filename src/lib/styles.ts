@@ -23,7 +23,7 @@ export const selectCompact =
   "rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-700 shadow-sm transition focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:focus:border-indigo-400 dark:focus:ring-indigo-400/20";
 
 const buttonBase =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
 
 export const buttonPrimary = `${buttonBase} bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-500 dark:hover:bg-indigo-400`;
 
@@ -32,7 +32,7 @@ export const buttonSecondary = `${buttonBase} border border-zinc-300 bg-white te
 export const buttonDanger = `${buttonBase} border border-red-200 bg-white text-red-600 hover:bg-red-50 dark:border-red-900/50 dark:bg-zinc-900 dark:text-red-400 dark:hover:bg-red-950`;
 
 const buttonSmBase =
-  "inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium shadow-sm transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium shadow-sm transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
 
 export const buttonSecondarySm = `${buttonSmBase} border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800`;
 
@@ -52,3 +52,19 @@ export const badge =
 
 export const chip =
   "inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300";
+
+// Distinct, readable color per shot status so the pipeline stage is
+// legible at a glance instead of every badge looking the same.
+export const SHOT_STATUS_STYLES: Record<string, string> = {
+  PLANNED: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  PROMPTING: "bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+  GENERATING: "bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  REVIEW: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+  NEEDS_REWORK: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300",
+  APPROVED: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300",
+};
+
+// Applied to cards/rows that should gently animate in when the list
+// they belong to first renders or re-renders (e.g. a Kanban column
+// after a status change moves a shot into it).
+export const cardEnter = "animate-[card-enter_0.25s_ease-out]";

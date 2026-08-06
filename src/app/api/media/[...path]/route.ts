@@ -12,6 +12,8 @@ function contentType(path: string) {
     case ".gif": return "image/gif";
     case ".mp4": return "video/mp4";
     case ".webm": return "video/webm";
+    case ".mov": return "video/quicktime";
+    case ".mkv": return "video/x-matroska";
     case ".csv": return "text/csv; charset=utf-8";
     default: return "application/octet-stream";
   }

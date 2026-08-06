@@ -6,11 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { parseShotList } from "@/lib/shotParser";
 import { parseShotListWithAi } from "@/lib/aiParser";
 import { detectDefaultModel } from "@/lib/aiProviders";
-import {
-  SETTINGS_ID,
-  getAiProviderConfig,
-  getAiProviderSettingsRow,
-} from "@/lib/settings";
+import { getAiProviderConfig } from "@/lib/settings";
 import {
   MAX_PROMPT_LENGTH,
   MAX_TITLE_LENGTH,
@@ -221,36 +217,6 @@ export async function deleteShot(formData: FormData) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-export async function createTake(formData: FormData) {
-  const shotId = String(formData.get("shotId") ?? "");
-  const projectId = String(formData.get("projectId") ?? "");
-  if (!shotId || !projectId) return;
-
-  const model = String(formData.get("model") ?? "").trim();
-  const fileUrl = String(formData.get("fileUrl") ?? "").trim();
-  const seed = String(formData.get("seed") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim();
-
-  const lastTake = await prisma.take.findFirst({
-    where: { shotId },
-    orderBy: { versionNumber: "desc" },
-  });
-
-  await prisma.take.create({
-    data: {
-      shotId,
-      versionNumber: (lastTake?.versionNumber ?? 0) + 1,
-      model: model || null,
-      fileUrl: fileUrl || null,
-      seed: seed || null,
-      notes: notes || null,
-    },
-  });
-
-  revalidatePath(`/projects/${projectId}/shots/${shotId}`);
-  revalidatePath(`/projects/${projectId}`);
-}
-
 export async function updateTakeStatus(formData: FormData) {
   const id = String(formData.get("id") ?? "");
   const shotId = String(formData.get("shotId") ?? "");
@@ -264,35 +230,6 @@ export async function updateTakeStatus(formData: FormData) {
   });
 
   revalidatePath(`/projects/${projectId}/shots/${shotId}`);
-}
-
-export async function selectTake(formData: FormData) {
-  const id = String(formData.get("id") ?? "");
-  const shotId = String(formData.get("shotId") ?? "");
-  const projectId = String(formData.get("projectId") ?? "");
-  if (!id || !shotId || !projectId) return;
-
-  const take = await prisma.take.findUnique({ where: { id } });
-  if (!take || take.shotId !== shotId) return;
-  if (take.status !== "READY") return;
-
-  await prisma.$transaction([
-    prisma.take.updateMany({
-      where: { shotId, status: "SELECTED" },
-      data: { status: "READY" },
-    }),
-    prisma.take.update({
-      where: { id, shotId },
-      data: { status: "SELECTED" },
-    }),
-    prisma.shot.update({
-      where: { id: shotId },
-      data: { videoUrl: take.fileUrl },
-    }),
-  ]);
-
-  revalidatePath(`/projects/${projectId}/shots/${shotId}`);
-  revalidatePath(`/projects/${projectId}`);
 }
 
 export interface ImportShotsResult {
@@ -416,51 +353,35 @@ export async function importShots(
   };
 }
 
-export async function saveAiProviderSettings(
-  formData: FormData,
-): Promise<ActionResult> {
-  const existing = await getAiProviderSettingsRow();
-
-  const apiBaseUrl =
-    String(formData.get("apiBaseUrl") ?? "").trim() ||
-    existing?.apiBaseUrl ||
-    "";
-  const apiKey =
-    String(formData.get("apiKey") ?? "").trim() || existing?.apiKey || "";
-  const modelNameRaw = String(formData.get("modelName") ?? "").trim();
-  const modelName =
-    modelNameRaw ||
-    existing?.modelName ||
-    (apiBaseUrl ? detectDefaultModel(apiBaseUrl) : "");
-
-  if (!apiBaseUrl || !apiKey) {
-    return {
-      success: false,
-      error: "API Base URL and API Key are required.",
-    };
-  }
+function validateProviderFields(apiBaseUrl: string, apiKey: string, modelName: string, name: string): string | null {
+  if (!apiBaseUrl || !apiKey) return "API Base URL and API Key are required.";
   try {
     new URL(apiBaseUrl);
   } catch {
-    return {
-      success: false,
-      error: "Enter a valid URL, e.g. https://api.openai.com/v1",
-    };
+    return "Enter a valid URL, e.g. https://api.openai.com/v1";
   }
-  if (apiBaseUrl.length > 500) {
-    return { success: false, error: "URL is too long." };
-  }
-  if (apiKey.length > 300) {
-    return { success: false, error: "That doesn't look like a valid key." };
-  }
-  if (modelName.length > 200) {
-    return { success: false, error: "Model name is too long." };
-  }
+  if (apiBaseUrl.length > 500) return "URL is too long.";
+  if (apiKey.length > 300) return "That doesn't look like a valid key.";
+  if (modelName.length > 200) return "Model name is too long.";
+  if (name.length > 100) return "Name is too long.";
+  return null;
+}
 
-  await prisma.appSettings.upsert({
-    where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, apiBaseUrl, apiKey, modelName },
-    update: { apiBaseUrl, apiKey, modelName },
+export async function createAiProviderProfile(
+  formData: FormData,
+): Promise<ActionResult> {
+  const name = String(formData.get("name") ?? "").trim() || "Untitled provider";
+  const apiBaseUrl = String(formData.get("apiBaseUrl") ?? "").trim();
+  const apiKey = String(formData.get("apiKey") ?? "").trim();
+  const modelNameRaw = String(formData.get("modelName") ?? "").trim();
+  const modelName = modelNameRaw || (apiBaseUrl ? detectDefaultModel(apiBaseUrl) : "");
+
+  const validationError = validateProviderFields(apiBaseUrl, apiKey, modelName, name);
+  if (validationError) return { success: false, error: validationError };
+
+  const existingCount = await prisma.aiProviderProfile.count();
+  await prisma.aiProviderProfile.create({
+    data: { name, apiBaseUrl, apiKey, modelName, isActive: existingCount === 0 },
   });
 
   revalidatePath("/settings");
@@ -469,12 +390,73 @@ export async function saveAiProviderSettings(
   return { success: true };
 }
 
-export async function clearAiProviderSettings(): Promise<ActionResult> {
-  await prisma.appSettings.upsert({
-    where: { id: SETTINGS_ID },
-    create: { id: SETTINGS_ID, apiBaseUrl: null, apiKey: null, modelName: null },
-    update: { apiBaseUrl: null, apiKey: null, modelName: null },
+export async function updateAiProviderProfile(
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { success: false, error: "Missing profile id." };
+
+  const existing = await prisma.aiProviderProfile.findUnique({ where: { id } });
+  if (!existing) return { success: false, error: "Profile not found." };
+
+  const name = String(formData.get("name") ?? "").trim() || existing.name;
+  const apiBaseUrl = String(formData.get("apiBaseUrl") ?? "").trim() || existing.apiBaseUrl;
+  const apiKeyRaw = String(formData.get("apiKey") ?? "").trim();
+  const apiKey = apiKeyRaw || existing.apiKey;
+  const modelNameRaw = String(formData.get("modelName") ?? "").trim();
+  const modelName = modelNameRaw || existing.modelName;
+
+  const validationError = validateProviderFields(apiBaseUrl, apiKey, modelName, name);
+  if (validationError) return { success: false, error: validationError };
+
+  await prisma.aiProviderProfile.update({
+    where: { id },
+    data: { name, apiBaseUrl, apiKey, modelName },
   });
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { success: true };
+}
+
+export async function deleteAiProviderProfile(
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { success: false, error: "Missing profile id." };
+
+  const existing = await prisma.aiProviderProfile.findUnique({ where: { id } });
+  if (!existing) return { success: true };
+
+  await prisma.aiProviderProfile.delete({ where: { id } });
+
+  if (existing.isActive) {
+    const next = await prisma.aiProviderProfile.findFirst({ orderBy: { createdAt: "asc" } });
+    if (next) {
+      await prisma.aiProviderProfile.update({ where: { id: next.id }, data: { isActive: true } });
+    }
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/");
+
+  return { success: true };
+}
+
+export async function setActiveAiProviderProfile(
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { success: false, error: "Missing profile id." };
+
+  const existing = await prisma.aiProviderProfile.findUnique({ where: { id } });
+  if (!existing) return { success: false, error: "Profile not found." };
+
+  await prisma.$transaction([
+    prisma.aiProviderProfile.updateMany({ where: { isActive: true }, data: { isActive: false } }),
+    prisma.aiProviderProfile.update({ where: { id }, data: { isActive: true } }),
+  ]);
 
   revalidatePath("/settings");
   revalidatePath("/");

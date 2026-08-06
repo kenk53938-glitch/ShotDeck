@@ -2,6 +2,7 @@ import { basename, extname, isAbsolute, join } from "node:path";
 import { readFile } from "node:fs/promises";
 import { prisma } from "@/lib/prisma";
 import { getAiProviderConfig } from "@/lib/settings";
+import { fetchAiProvider } from "@/lib/aiRequest";
 
 export type ImagePromptDraft = {
   positivePrompt: string;
@@ -123,23 +124,23 @@ async function callPromptProvider(
     : textMessage;
 
   async function request(message: unknown) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: modelName,
-        messages: [message],
-        response_format: { type: "json_object" },
+    const response = await fetchAiProvider(
+      url,
+      () => ({
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: modelName,
+          messages: [message],
+          response_format: { type: "json_object" },
+        }),
+        signal: AbortSignal.timeout(90_000),
       }),
-      signal: AbortSignal.timeout(90_000),
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI provider returned HTTP ${response.status}. Check the configured endpoint, model, and account quota.`);
-    }
+      apiBaseUrl,
+    );
     return response.json();
   }
 
