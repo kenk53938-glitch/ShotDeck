@@ -1,24 +1,27 @@
 import { prisma } from "@/lib/prisma";
 
-export const SETTINGS_ID = "singleton";
-
 export interface AiProviderConfig {
   apiBaseUrl: string;
   apiKey: string;
   modelName: string;
 }
 
-export async function getAiProviderSettingsRow() {
-  return prisma.appSettings.findUnique({ where: { id: SETTINGS_ID } });
+export async function listAiProviderProfiles() {
+  return prisma.aiProviderProfile.findMany({ orderBy: { createdAt: "asc" } });
+}
+
+export async function getActiveAiProviderProfile() {
+  return prisma.aiProviderProfile.findFirst({ where: { isActive: true } });
 }
 
 /**
- * Effective AI provider config for shot-list parsing, or null if not
- * fully configured (all three of base URL, key, and model are
- * required). Configured entirely through the Settings page.
+ * Effective AI provider config for shot-list parsing and prompt
+ * generation, or null if no profile is configured/active. Configured
+ * entirely through the Settings page, which supports saving multiple
+ * named provider profiles and switching which one is active.
  */
 export async function getAiProviderConfig(): Promise<AiProviderConfig | null> {
-  const row = await getAiProviderSettingsRow();
+  const row = await getActiveAiProviderProfile();
   if (row?.apiBaseUrl && row?.apiKey && row?.modelName) {
     return {
       apiBaseUrl: row.apiBaseUrl,

@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [master, feature/ai-production-pipeline]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: file:./ci.db
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - name: Run lint
+        id: lint
+        continue-on-error: true
+        run: npm run lint > lint-output.txt 2>&1
+      - name: Upload lint diagnostics
+        if: steps.lint.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-diagnostics
+          path: lint-output.txt
+          if-no-files-found: error
+          retention-days: 3
+      - name: Fail on lint errors
+        if: steps.lint.outcome == 'failure'
+        run: |
+          cat lint-output.txt
+          exit 1
+      - run: npm run typecheck
+      - run: npm run build
