@@ -1,44 +1,81 @@
-# ShotDeck
+# 🎬 ShotDeck
 
-Shot-level production tracker for AI-generated YouTube videos.
+**ShotDeck is a local-first, shot-level production tracker for AI-assisted video workflows.**
+
+Instead of managing a 30–50 shot project in a spreadsheet, ShotDeck keeps each shot's prompt, status, takes, selected asset, notes, and production history together in one place.
 
 ![ShotDeck screenshot](./docs/screenshot.png)
 
-## Why I built this
+## Why ShotDeck exists
 
-I run production for a YouTube channel where each video has 40+ shots,
-and every shot needs its own prompt, AI tool, and take history tracked
-separately. Spreadsheets broke down fast — no per-shot take history,
-no easy way to see what's still in progress vs. approved, and prompts
-buried in cells nobody could search. ShotDeck replaces that with a
-proper shot board: each shot moves through a status pipeline, and every
-generation attempt (take) is logged with its own model, seed, cost, and
-outcome so I can pick the best one without losing track of the rest.
+Faceless and AI-assisted video production creates a coordination problem before it creates an editing problem. A single video can involve dozens of shots, multiple prompt revisions, several generations per shot, rejected takes, approved takes, and files spread across different tools.
+
+ShotDeck turns that into a visible workflow:
+
+```text
+Project
+  ↓
+Ordered Shots
+  ↓
+Prompt / Negative Prompt
+  ↓
+Generation Takes
+  ↓
+Review + Selection
+  ↓
+Approved production asset
+```
+
+## Current default-branch features
+
+- Create and manage video projects
+- Ordered shot board with production statuses
+- Store title, description, prompt, negative prompt, AI tool, duration, notes, and video link per shot
+- Track multiple generation Takes per shot
+- Select exactly one preferred Take for a shot
+- Bulk-import structured shot lists
+- Optional AI-assisted parsing through an OpenAI-compatible provider
+- Local SQLite data storage
+- Localhost-only development/runtime binding
+- Validation and guarded server actions for safer local use
+
+## Production pipeline work
+
+A larger local production pipeline is currently being validated in **[PR #1 — Build the complete local AI-video production pipeline](https://github.com/kaziaiops/ShotDeck/pull/1)**.
+
+That branch adds the next stage of ShotDeck: still-image intake/review, ComfyUI queueing and polling, WAN preview generation, approved-only upscale flow, local output organization, and production-oriented status handling.
+
+The PR intentionally remains unmerged until its real ComfyUI workflows are verified on the target Windows/GPU environment. Hardware verification is tracked in **[Issue #2](https://github.com/kaziaiops/ShotDeck/issues/2)**.
 
 ## Stack
 
-- [Next.js](https://nextjs.org) (App Router, TypeScript, Turbopack)
-- [Tailwind CSS](https://tailwindcss.com) v4
-- [Prisma](https://www.prisma.io) 7 + SQLite (via the `better-sqlite3` driver adapter)
+- **Next.js** App Router
+- **React + TypeScript**
+- **Tailwind CSS**
+- **Prisma + SQLite**
+- Optional **OpenAI-compatible** provider for shot-list parsing
+- Local-only runtime by design
 
 ## Data model
 
-`Project` → `Shot` → `Take`. A project has an ordered list of shots; each shot
-can have multiple AI-generation takes (model, seed, cost, status), since
-AI video generation usually needs several attempts before one is selected.
+```text
+Project
+  └── Shot
+       └── Take
+```
 
-See [`prisma/schema.prisma`](./prisma/schema.prisma) for the full schema.
+A Project contains ordered Shots. A Shot stores the production context and can have multiple Takes so failed or rejected generations do not erase history.
 
-## Importing shots
-
-Shots can be bulk-imported from pasted text or an uploaded file on each
-project's board, instead of adding them one by one. See
-[`docs/shot-format.md`](./docs/shot-format.md) for the expected format
-(works for video, comics, or any other shot-by-shot medium) and for how
-to enable optional AI-assisted parsing via any OpenAI-compatible
-provider, configured on the Settings page.
+See [`prisma/schema.prisma`](./prisma/schema.prisma) for the source of truth.
 
 ## Getting started
+
+### Requirements
+
+- Node.js 20+
+- npm
+
+### Install
 
 ```bash
 cp .env.example .env
@@ -47,14 +84,45 @@ npx prisma migrate dev
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to use the app. The
-dev server binds to `127.0.0.1` only — this app has no auth and is meant
-to run locally, not be exposed on your network.
+Open:
 
-## Other scripts
+```text
+http://127.0.0.1:3000
+```
+
+ShotDeck has no authentication and is intended to run locally. **Do not expose the development or production server directly to the public internet.**
+
+## Useful commands
 
 ```bash
-npm run build       # production build
-npm run db:migrate  # create/apply a Prisma migration
-npm run db:studio   # browse the database in Prisma Studio
+npm run dev
+npm run build
+npm run lint
+npm run db:migrate
+npm run db:studio
 ```
+
+## Project direction
+
+See [`ROADMAP.md`](ROADMAP.md) for the current engineering priorities and what must be verified before the production-pipeline branch is ready to merge.
+
+## Contributing
+
+ShotDeck is still early-stage. Bug reports and focused improvements are useful, especially around production reliability, data integrity, local workflow automation, and documentation.
+
+When reporting a bug, include:
+
+- operating system,
+- Node.js version,
+- steps to reproduce,
+- expected behavior,
+- actual behavior,
+- and relevant error output with secrets removed.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
+
+---
+
+> **Design principle:** the project board should always make it obvious what exists, what is approved, what failed, and what still needs work.
